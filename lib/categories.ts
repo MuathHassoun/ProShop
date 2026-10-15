@@ -20,13 +20,17 @@ const WHERE: Record<Scope, string> = {
          )`,
 };
 
-export async function getCategories(scope: Scope = 'all'): Promise<Category[]> {
+export async function getCategories(scope: Scope = 'all', limit?: number): Promise<Category[]> {
   await connection();
+
+  const limitClause =
+    limit !== undefined && Number.isFinite(limit) ? `LIMIT ${Math.max(1, Math.trunc(limit))}` : '';
 
   return query<Category>(
     `SELECT category_id, name, slug, image_url
      FROM categories
      ${WHERE[scope]}
-     ORDER BY name`
+     ORDER BY name
+     ${limitClause}`
   );
 }

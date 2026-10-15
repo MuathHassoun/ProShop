@@ -50,55 +50,65 @@ export default function ProductCard({ product, onAddToCart, onToggleWishlist }: 
   const inStock = (product.stock_quantity ?? 0) > 0;
 
   return (
-    <article className="flex h-full w-full flex-col items-center gap-2 rounded-2xl bg-white p-2 text-neutral-800 shadow-sm transition hover:shadow-md sm:gap-3 sm:p-3">
-      <Link href={`/product/${product.slug}`} className="flex w-full flex-col items-center gap-1.5 sm:gap-2">
-        <div className="relative aspect-square w-full shrink-0 overflow-hidden rounded-xl bg-neutral-50">
+    <article className="group flex h-full w-full flex-col overflow-hidden rounded-2xl bg-white text-neutral-800 shadow-sm transition hover:shadow-md">
+      <Link href={`/product/${product.slug}`} className="flex w-full flex-col">
+        <div className="relative aspect-[4/3] w-full shrink-0 overflow-hidden bg-neutral-50">
           {product.image_url ? (
             <Image
               src={product.image_url}
               alt={product.name}
               fill
-              sizes="(max-width: 640px) 45vw, (max-width: 1024px) 30vw, 280px"
-              className="object-contain p-2"
+              sizes="(max-width: 640px) 90vw, (max-width: 1024px) 45vw, 300px"
+              className="object-cover transition-transform duration-300 group-hover:scale-105"
             />
           ) : (
             <div className="absolute inset-0 flex items-center justify-center text-2xl font-bold text-black">
               <span className="text-yellow-400">Pro</span>Shop
             </div>
           )}
+
+          {hasDiscount && (
+            <span className="absolute left-2 top-2 rounded-full bg-red-500 px-2 py-0.5 text-xs font-semibold text-white sm:text-sm">
+              -{Math.round((1 - price / product.price) * 100)}%
+            </span>
+          )}
         </div>
 
-        <h3 className="line-clamp-2 h-10 w-full text-center text-sm leading-5 sm:h-12 sm:text-base sm:leading-6">
+        <h3 className="line-clamp-2 min-h-[2.5rem] px-3 pt-3 text-center text-sm leading-5 transition group-hover:text-primary-500 sm:min-h-[3rem] sm:text-base sm:leading-6">
           {product.name}
         </h3>
       </Link>
 
-      <Rating value={product.rating ?? 0} />
+      <div className="mt-auto flex flex-col items-center gap-2 px-3 pb-3 pt-2 sm:gap-2.5">
+        <Rating value={product.rating ?? 0} />
 
-      <div className="flex h-7 items-baseline gap-2 sm:h-8">
-        <p className="text-lg font-bold sm:text-xl">{formatPrice(price)}</p>
-        {hasDiscount && (
-          <p className="text-xs text-neutral-400 line-through sm:text-sm">{formatPrice(product.price)}</p>
-        )}
-      </div>
+        <div className="flex h-7 items-baseline gap-2 sm:h-8">
+          <p className={`text-lg font-bold sm:text-xl ${hasDiscount ? 'text-red-500' : ''}`}>
+            {formatPrice(price)}
+          </p>
+          {hasDiscount && (
+            <p className="text-xs text-neutral-400 line-through sm:text-sm">{formatPrice(product.price)}</p>
+          )}
+        </div>
 
-      <div className="mt-auto flex w-full items-center gap-1.5 sm:gap-2">
-        <button
-          type="button"
-          onClick={() => onToggleWishlist?.(product)}
-          aria-label="Add to wishlist"
-          className="flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-lg bg-neutral-100 transition hover:bg-yellow-400 sm:size-11"
-        >
-          <Bookmark className="size-5" />
-        </button>
-        <button
-          type="button"
-          onClick={() => onAddToCart?.(product)}
-          disabled={!inStock}
-          className="h-10 min-w-0 flex-1 cursor-pointer truncate rounded-lg bg-neutral-100 px-3 text-sm transition hover:bg-yellow-400 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-neutral-100 sm:h-11 sm:text-base"
-        >
-          {inStock ? 'Add To Cart' : 'Out of stock'}
-        </button>
+        <div className="flex w-full items-center gap-1.5 sm:gap-2">
+          <button
+            type="button"
+            onClick={() => onToggleWishlist?.(product)}
+            aria-label="Add to wishlist"
+            className="flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-lg bg-neutral-100 transition hover:bg-yellow-400 sm:size-11"
+          >
+            <Bookmark className="size-5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => onAddToCart?.(product)}
+            disabled={!inStock}
+            className="h-10 min-w-0 flex-1 cursor-pointer truncate rounded-lg bg-neutral-100 px-3 text-sm transition hover:bg-yellow-400 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-neutral-100 sm:h-11 sm:text-base"
+          >
+            {inStock ? 'Add To Cart' : 'Out of stock'}
+          </button>
+        </div>
       </div>
     </article>
   );

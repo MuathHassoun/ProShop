@@ -31,7 +31,6 @@ export default function Advertising({ products }: Props) {
   const next = useCallback(() => setIndex((i) => (i + 1) % count), [count]);
   const prev = useCallback(() => setIndex((i) => (i - 1 + count) % count), [count]);
 
-  // Auto-advance. Depending on `index` restarts the timer after any manual navigation.
   useEffect(() => {
     if (paused || count <= 1) return;
     const id = setTimeout(next, AUTOPLAY_MS);
@@ -53,7 +52,6 @@ export default function Advertising({ products }: Props) {
         onFocus={() => setPaused(true)}
         onBlur={() => setPaused(false)}
       >
-        {/* Track */}
         <div
           className="flex transition-transform duration-500 ease-out motion-reduce:transition-none"
           style={{ transform: `translateX(-${index * 100}%)` }}
@@ -65,6 +63,7 @@ export default function Advertising({ products }: Props) {
               product.discount_price < product.price;
             const price = hasDiscount ? (product.discount_price as number) : product.price;
             const saved = hasDiscount ? product.price - price : 0;
+            const percent = hasDiscount ? Math.round((saved / product.price) * 100) : 0;
             const rating = Math.round(product.rating ?? 0);
             const inStock = (product.stock_quantity ?? 0) > 0;
             const active = i === index;
@@ -76,10 +75,11 @@ export default function Advertising({ products }: Props) {
                 aria-roledescription="slide"
                 aria-label={`${i + 1} of ${count}`}
                 aria-hidden={!active}
+                inert={!active}
                 className="w-full shrink-0"
               >
-                <div className="mx-auto flex h-full w-full max-w-[1500px] flex-col gap-4 py-4 sm:px-15 sm:py-6 md:flex-row md:items-center md:gap-10 md:py-8 lg:gap-16 xl:px-0 2xl:gap-24 2xl:py-12">
-                  <div className="relative order-first aspect-[4/3] w-full overflow-hidden rounded-2xl bg-white sm:aspect-[16/9] md:order-last md:aspect-[4/3] md:w-auto md:flex-1 md:basis-0">
+                <div className="mx-auto flex h-full w-full max-w-[1500px] flex-col gap-5 pb-6 sm:px-15 sm:py-6 md:flex-row md:items-center md:gap-10 md:py-8 lg:gap-16 xl:px-0 2xl:gap-24 2xl:py-12">
+                  <div className="relative order-first aspect-[4/3] w-full overflow-hidden bg-white sm:aspect-[16/9] sm:rounded-2xl md:order-last md:aspect-[4/3] md:w-auto md:flex-1 md:basis-0">
                     {product.image_url ? (
                       <Image
                         src={product.image_url}
@@ -96,9 +96,15 @@ export default function Advertising({ products }: Props) {
                         </p>
                       </div>
                     )}
+
+                    {hasDiscount && (
+                      <span className="absolute left-3 top-3 rounded-full bg-red-500 px-3 py-1 text-sm font-semibold text-white sm:left-4 sm:top-4 lg:text-base">
+                        -{percent}%
+                      </span>
+                    )}
                   </div>
 
-                  <div className="flex min-w-0 flex-col items-center gap-3 pb-4 text-center sm:gap-4 md:flex-1 md:basis-0 md:items-start md:pb-0 md:text-left 2xl:gap-5">
+                  <div className="flex min-w-0 flex-col items-center gap-3 px-4 text-center sm:gap-4 sm:px-0 md:flex-1 md:basis-0 md:items-start md:text-left 2xl:gap-5">
                     {hasDiscount && (
                       <p className="text-base font-bold uppercase tracking-[0.05em] text-yellow-600 sm:text-lg lg:text-xl">
                         Save {formatPrice(saved)}
@@ -116,7 +122,13 @@ export default function Advertising({ products }: Props) {
                     ) : null}
 
                     <div className="flex items-baseline gap-3">
-                      <p className="text-2xl font-bold sm:text-3xl 2xl:text-4xl">{formatPrice(price)}</p>
+                      <p
+                        className={`text-2xl font-bold sm:text-3xl 2xl:text-4xl ${
+                          hasDiscount ? 'text-red-500' : ''
+                        }`}
+                      >
+                        {formatPrice(price)}
+                      </p>
                       {hasDiscount && (
                         <p className="text-base text-neutral-500 line-through sm:text-lg">
                           {formatPrice(product.price)}
@@ -143,7 +155,6 @@ export default function Advertising({ products }: Props) {
 
                     <Link
                       href={`/product/${product.slug}`}
-                      tabIndex={active ? 0 : -1}
                       className="mt-2 inline-flex w-full max-w-[260px] items-center justify-center rounded-[15px] bg-yellow-400 px-8 py-3 text-center font-normal tracking-[0.1em] text-black transition hover:text-primary-500 sm:w-[200px] sm:px-11"
                     >
                       SHOP NOW
@@ -155,7 +166,6 @@ export default function Advertising({ products }: Props) {
           })}
         </div>
 
-        {/* Arrows */}
         {count > 1 && (
           <>
             <button
@@ -178,7 +188,6 @@ export default function Advertising({ products }: Props) {
         )}
       </div>
 
-      {/* Pagination dots */}
       {count > 1 && (
         <div className="mt-3 flex items-center justify-center gap-2" role="tablist" aria-label="Choose slide">
           {slides.map((product, i) => (

@@ -1,9 +1,9 @@
 // components/product/CategoryCarousel.tsx
 'use client';
-
 import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import CategoryCard from './CategoryCard';
+import SeeMoreCard from './SeeMoreCard';
 
 interface CategoryItem {
   slug: string;
@@ -13,6 +13,7 @@ interface CategoryItem {
 
 interface Props {
   categories: CategoryItem[];
+  seeMoreHref?: string;
 }
 
 const AUTOPLAY_MS = 4000;
@@ -31,17 +32,19 @@ function usePerPage() {
   return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 }
 
-export default function CategoryCarousel({ categories }: Props) {
+export default function CategoryCarousel({ categories, seeMoreHref }: Props) {
   const perPage = usePerPage();
   if (categories.length === 0) return null;
 
-  return <Slider key={perPage} categories={categories} perPage={perPage} />;
+  return <Slider key={perPage} categories={categories} perPage={perPage} seeMoreHref={seeMoreHref} />;
 }
 
-function Slider({ categories, perPage }: Props & { perPage: number }) {
-  const pages: CategoryItem[][] = [];
-  for (let i = 0; i < categories.length; i += perPage) {
-    pages.push(categories.slice(i, i + perPage));
+function Slider({ categories, perPage, seeMoreHref }: Props & { perPage: number }) {
+  const items: (CategoryItem | 'more')[] = seeMoreHref ? [...categories, 'more'] : categories;
+
+  const pages: (CategoryItem | 'more')[][] = [];
+  for (let i = 0; i < items.length; i += perPage) {
+    pages.push(items.slice(i, i + perPage));
   }
   const count = pages.length;
 
@@ -125,14 +128,18 @@ function Slider({ categories, perPage }: Props & { perPage: number }) {
                 inert={p !== index}
                 className="grid w-full shrink-0 grid-cols-2 content-start gap-2 sm:gap-3 md:grid-cols-4"
               >
-                {page.map((c) => (
-                  <CategoryCard
-                    key={c.slug}
-                    name={c.name}
-                    image_url={c.image_url}
-                    href={`/category/${c.slug}`}
-                  />
-                ))}
+                {page.map((c) =>
+                  c === 'more' ? (
+                    <SeeMoreCard key="more" href={seeMoreHref!} tinted />
+                  ) : (
+                    <CategoryCard
+                      key={c.slug}
+                      name={c.name}
+                      image_url={c.image_url}
+                      href={`/category/${c.slug}`}
+                    />
+                  ),
+                )}
               </div>
             ))}
           </div>

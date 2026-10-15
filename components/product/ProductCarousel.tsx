@@ -4,6 +4,7 @@
 import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import ProductCard from './ProductCard';
+import SeeMoreCard from './SeeMoreCard';
 import type { Product } from '@/types';
 
 interface Props {
@@ -12,6 +13,7 @@ interface Props {
   products: Product[];
   align?: 'left' | 'center';
   className?: string;
+  seeMoreHref?: string;
 }
 
 const AUTOPLAY_MS = 4000;
@@ -44,12 +46,22 @@ export default function ProductCarousel(props: Props) {
   return <Slider key={perPage} perPage={perPage} {...props} />;
 }
 
-function Slider({ id, title, products, align = 'left', className = '', perPage }: Props & { perPage: number }) {
+function Slider({
+  id,
+  title,
+  products,
+  align = 'left',
+  className = '',
+  seeMoreHref,
+  perPage,
+}: Props & { perPage: number }) {
   const centered = align === 'center';
 
-  const pages: Product[][] = [];
-  for (let i = 0; i < products.length; i += perPage) {
-    pages.push(products.slice(i, i + perPage));
+  const items: (Product | 'more')[] = seeMoreHref ? [...products, 'more'] : products;
+
+  const pages: (Product | 'more')[][] = [];
+  for (let i = 0; i < items.length; i += perPage) {
+    pages.push(items.slice(i, i + perPage));
   }
   const count = pages.length;
 
@@ -136,9 +148,13 @@ function Slider({ id, title, products, align = 'left', className = '', perPage }
                 inert={p !== index}
                 className="grid w-full shrink-0 grid-cols-1 content-start gap-2 sm:grid-cols-2 sm:gap-3 lg:grid-cols-4"
               >
-                {page.map((product) => (
-                  <ProductCard key={product.slug} product={product} />
-                ))}
+                {page.map((item) =>
+                  item === 'more' ? (
+                    <SeeMoreCard key="more" href={seeMoreHref!} />
+                  ) : (
+                    <ProductCard key={item.slug} product={item} />
+                  ),
+                )}
               </div>
             ))}
           </div>

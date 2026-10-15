@@ -12,25 +12,25 @@ export default function CategoryCard({ name, image_url, href }: Props) {
   return (
     <Link
       href={href}
-      className="group flex h-full w-full flex-col items-center gap-1 sm:gap-1.5"
+      className="group flex h-full w-full flex-col overflow-hidden rounded-2xl bg-slate-100 transition hover:shadow-md"
     >
-      <div className="relative aspect-square w-full shrink-0 overflow-hidden rounded-2xl bg-slate-100 transition group-hover:shadow-md">
+      <div className="relative aspect-[4/3] w-full shrink-0 overflow-hidden">
         {image_url ? (
           <Image
             src={image_url}
             alt={name}
             fill
-            sizes="(max-width: 640px) 45vw, (max-width: 1024px) 25vw, 200px"
-            className="object-contain p-1.5 mix-blend-multiply transition-transform duration-300 group-hover:scale-105 sm:p-2"
+            sizes="(max-width: 640px) 45vw, (max-width: 1024px) 25vw, 300px"
+            className="object-cover transition-transform duration-300 group-hover:scale-105"
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center text-3xl font-bold text-black sm:text-4xl">
+          <div className="flex h-full w-full items-center justify-center text-4xl font-bold">
             <span className="text-yellow-400">{name.charAt(0).toUpperCase()}</span>
           </div>
         )}
       </div>
 
-      <p className="line-clamp-2 h-9 w-full px-1 py-2 text-center text-sm font-medium uppercase leading-[18px] tracking-[0.1em] text-neutral-800 transition group-hover:text-primary-500 sm:h-11 sm:text-base sm:leading-[22px]">
+      <p className="line-clamp-2 flex min-h-[3rem] items-center justify-center px-3 py-2 text-center text-xs font-semibold uppercase leading-4 tracking-[0.08em] text-neutral-800 transition group-hover:text-primary-500 sm:min-h-[3.5rem] sm:text-sm sm:leading-5">
         {name}
       </p>
     </Link>

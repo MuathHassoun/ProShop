@@ -6,6 +6,10 @@ import ProductCarousel from '@/components/product/ProductCarousel';
 import { getDiscountedProducts, getProducts, getTopRatedProducts } from '@/lib/products';
 import { getCategories } from '@/lib/categories';
 
+const HOME_CATEGORIES_LIMIT = 7;
+const HOME_PRODUCTS_LIMIT = 15;
+const HOME_TOP_RATE_PRODUCTS = 7;
+
 const categoriesGrid =
   'mx-auto grid max-w-[1500px] grid-cols-1 gap-2 px-4 sm:grid-cols-1 sm:gap-3 sm:px-15 md:grid-cols-4 md:px-15 lg:grid-cols-4 xl:px-0';
 const productsGrid =
@@ -91,21 +95,27 @@ async function HomeAdvertising() {
 }
 
 async function HomeCategories() {
-  const categories = await getCategories();
+  const categories = await getCategories('leaf', HOME_CATEGORIES_LIMIT + 1);
   if (!categories.length) return null;
 
-  return <CategoryCarousel categories={categories} />;
+  return (
+    <CategoryCarousel
+      categories={categories.slice(0, HOME_CATEGORIES_LIMIT)}
+      seeMoreHref={categories.length > HOME_CATEGORIES_LIMIT ? '/categories' : undefined}
+    />
+  );
 }
 
 async function HomeProducts() {
-  const products = await getProducts();
+  const products = await getProducts(HOME_PRODUCTS_LIMIT + 1);
   if (!products.length) return null;
 
   return (
     <ProductCarousel
       id="products-heading"
       title="Featured products"
-      products={products}
+      products={products.slice(0, HOME_PRODUCTS_LIMIT)}
+      seeMoreHref={products.length > HOME_PRODUCTS_LIMIT ? '/products' : undefined}
       align="center"
       className="bg-slate-50"
     />
@@ -113,14 +123,15 @@ async function HomeProducts() {
 }
 
 async function TopRatedProducts() {
-  const products = await getTopRatedProducts();
+  const products = await getTopRatedProducts(HOME_TOP_RATE_PRODUCTS + 1);
   if (!products.length) return null;
 
   return (
     <ProductCarousel
       id="top-rated-heading"
       title="Top rated products"
-      products={products}
+      products={products.slice(0, HOME_TOP_RATE_PRODUCTS)}
+      seeMoreHref={products.length > HOME_TOP_RATE_PRODUCTS ? '/products?sort=top-rated' : undefined}
     />
   );
 }
