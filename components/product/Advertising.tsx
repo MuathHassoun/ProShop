@@ -1,3 +1,4 @@
+// components/product/Advertising.tsx
 import Image from 'next/image';
 import Link from 'next/link';
 import { Star } from 'lucide-react';
@@ -24,10 +25,10 @@ export default function Advertising({ product }: Props) {
   const rating = Math.round(product.rating ?? 0);
 
   return (
-    <section className="relative w-full bg-gray-200 text-neutral-800 overflow-hidden">
-      <div className="mx-auto flex w-full max-w-7xl flex-col items-stretch md:min-h-[400px] md:flex-row md:items-center lg:min-h-[450px]">
+    <section className="relative w-full overflow-hidden bg-gray-200 text-neutral-800">
+      <div className="mx-auto flex w-full max-w-7xl flex-col items-stretch overflow-hidden bg-gray-200 md:min-h-[400px] md:flex-row md:items-center md:gap-8 md:px-6 lg:min-h-[500px] lg:px-8 xl:max-w-[1400px] xl:gap-16 xl:p-10 2xl:max-w-[1680px] 2xl:gap-28 2xl:px-24">
         {/* Image: on top for mobile, right side on md+ */}
-        <div className="relative order-first aspect-[4/3] w-full sm:aspect-[16/9] md:order-last md:aspect-auto md:min-h-[400px] md:w-1/2 lg:min-h-[450px]">
+        <div className="relative order-first m-3 aspect-[4/3] overflow-hidden rounded-2xl bg-white sm:aspect-[16/9] md:order-last md:m-0 md:aspect-auto md:min-h-[360px] md:flex-1 md:basis-0 lg:min-h-[420px] 2xl:min-h-[520px]">
           {product.image_url ? (
             <Image
               src={product.image_url}
@@ -47,13 +48,15 @@ export default function Advertising({ product }: Props) {
         </div>
 
         {/* Content */}
-        <div className="flex w-full flex-col items-center justify-center gap-3 px-5 py-8 text-center sm:gap-4 sm:px-8 sm:py-10 md:w-1/2 md:items-start md:px-10 md:text-left lg:px-14">
+        <div className="flex w-full min-w-0 flex-col items-center justify-center gap-3 px-5 py-6 text-center sm:gap-4 sm:px-8 sm:py-8 md:flex-1 md:basis-0 md:items-start md:px-4 md:py-0 md:text-left lg:px-6 xl:px-0 2xl:gap-5">
           <p className="text-base font-bold uppercase tracking-[0.05em] text-yellow-600 sm:text-lg lg:text-xl">
             Save up to {formatPrice(salePrice)}
           </p>
-          <h2 className="text-2xl font-bold sm:text-3xl lg:text-4xl">{product.name}</h2>
+          <h2 className="text-2xl font-bold sm:text-3xl lg:text-4xl 2xl:text-5xl">{product.name}</h2>
           {product.description ? (
-            <p className="max-w-lg text-sm text-neutral-600 sm:text-base">{product.description}</p>
+            <p className="max-w-lg text-sm text-neutral-600 sm:text-base 2xl:max-w-xl 2xl:text-lg">
+              {product.description}
+            </p>
           ) : null}
 
           <div className="mt-3 flex w-full flex-col items-center gap-4 sm:mt-5 sm:flex-row sm:justify-center sm:gap-8 md:justify-start lg:gap-12">

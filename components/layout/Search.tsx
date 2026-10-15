@@ -1,3 +1,4 @@
+// components/layout/Search.tsx
 import React from "react";
 import { SearchIcon } from "lucide-react";
 

@@ -1,15 +1,15 @@
 // app/page.tsx
 import { Suspense } from 'react';
-import Advertising from '@/components/product/advertising';
-import CategoryCard from '@/components/product/category_card';
-import ProductCard from '@/components/product/product_card';
+import Advertising from '@/components/product/Advertising';
+import CategoryCard from '@/components/product/CategoryCard';
+import ProductCard from '@/components/product/ProductCard';
 import { getFeaturedProduct, getProducts, getTopRatedProducts } from '@/lib/products';
 import { getCategories } from '@/lib/categories';
 
 const categoriesGrid =
-  'mx-auto grid max-w-7xl grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 md:grid-cols-4 lg:grid-cols-4';
+  'mx-auto grid max-w-[1500px] grid-cols-1 gap-2 px-4 sm:grid-cols-1 sm:gap-3 sm:px-15 md:grid-cols-4 md:px-15 lg:grid-cols-4 xl:px-0';
 const productsGrid =
-  'mx-auto grid max-w-7xl grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 lg:grid-cols-4 xl:grid-cols-4';
+  'mx-auto grid max-w-[1500px] grid-cols-1 gap-2 px-4 sm:grid-cols-1 sm:gap-3 sm:px-15 md:px-15 lg:grid-cols-4 xl:grid-cols-4 xl:px-0';
 
 interface SectionProps {
   id: string;
@@ -25,7 +25,7 @@ function Section({ id, title, align = 'left', action, className = '', children }
 
   return (
     <section aria-labelledby={id} className={`py-4 sm:py-6 ${className}`}>
-      <div className="mx-auto max-w-7xl">
+      <div className="mx-auto max-w-[1500px] px-4 sm:px-15 md:px-15 xl:px-0">
         <div
           className={`relative mb-4 flex items-center border-b border-neutral-200 pb-3 ${
             centered ? 'justify-center' : 'justify-between'

@@ -1,4 +1,4 @@
-// components/product/product_card.tsx
+// components/product/ProductCard.tsx
 'use client';
 
 import Image from 'next/image';
@@ -21,7 +21,7 @@ function formatPrice(value: number) {
 
 function Rating({ value }: { value: number }) {
   return (
-    <div className="flex items-center gap-0.5" role="img" aria-label={`Rated ${value} out of 5`}>
+    <div className="flex h-5 items-center gap-0.5" role="img" aria-label={`Rated ${value} out of 5`}>
       {Array.from({ length: 5 }).map((_, i) => {
         const diff = value - i;
         if (diff >= 1) {
@@ -50,16 +50,16 @@ export default function ProductCard({ product, onAddToCart, onToggleWishlist }: 
   const inStock = (product.stock_quantity ?? 0) > 0;
 
   return (
-    <article className="flex h-full w-full flex-col items-center gap-2 rounded-2xl bg-white px-2 pb-2 pt-0 text-neutral-800 shadow-sm transition hover:shadow-md sm:gap-3 sm:px-3 sm:pb-3">
+    <article className="flex h-full w-full flex-col items-center gap-2 rounded-2xl bg-white p-2 text-neutral-800 shadow-sm transition hover:shadow-md sm:gap-3 sm:p-3">
       <Link href={`/product/${product.slug}`} className="flex w-full flex-col items-center gap-1.5 sm:gap-2">
-        <div className="relative aspect-[4/5] w-full">
+        <div className="relative aspect-square w-full shrink-0 overflow-hidden rounded-xl bg-neutral-50">
           {product.image_url ? (
             <Image
               src={product.image_url}
               alt={product.name}
               fill
               sizes="(max-width: 640px) 45vw, (max-width: 1024px) 30vw, 280px"
-              className="object-contain"
+              className="object-contain p-2"
             />
           ) : (
             <div className="absolute inset-0 flex items-center justify-center text-2xl font-bold text-black">
@@ -67,13 +67,15 @@ export default function ProductCard({ product, onAddToCart, onToggleWishlist }: 
             </div>
           )}
         </div>
-        
-        <h3 className="line-clamp-2 min-h-[2.5rem] text-center text-sm sm:text-base">{product.name}</h3>
+
+        <h3 className="line-clamp-2 h-10 w-full text-center text-sm leading-5 sm:h-12 sm:text-base sm:leading-6">
+          {product.name}
+        </h3>
       </Link>
 
       <Rating value={product.rating ?? 0} />
 
-      <div className="flex items-baseline gap-2">
+      <div className="flex h-7 items-baseline gap-2 sm:h-8">
         <p className="text-lg font-bold sm:text-xl">{formatPrice(price)}</p>
         {hasDiscount && (
           <p className="text-xs text-neutral-400 line-through sm:text-sm">{formatPrice(product.price)}</p>
