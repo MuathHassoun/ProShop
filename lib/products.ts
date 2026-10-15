@@ -1,5 +1,6 @@
 // lib/products.ts
 import 'server-only';
+import { cache } from 'react';
 import { connection } from 'next/server';
 import { query } from '@/lib/db';
 import type { Product } from '@/types';
@@ -24,10 +25,7 @@ type ProductRow = {
 };
 
 function toNumber(value: string | number | null | undefined): number | null {
-  if (value === null || value === undefined || value === '') {
-    return null;
-  }
-
+  if (value === null || value === undefined || value === '') return null;
   const parsed = Number(value);
   return Number.isNaN(parsed) ? null : parsed;
 }
@@ -35,6 +33,10 @@ function toNumber(value: string | number | null | undefined): number | null {
 function toISO(value: string | Date | null): string {
   if (!value) return '';
   return value instanceof Date ? value.toISOString() : String(value);
+}
+
+function clampLimit(limit: number, fallback = 10): number {
+  return Number.isFinite(limit) ? Math.max(1, Math.trunc(limit)) : fallback;
 }
 
 const PRODUCT_SELECT = `
@@ -97,45 +99,37 @@ function mapProduct(row: ProductRow): Product {
   };
 }
 
-export async function getFeaturedProduct(): Promise<Product | null> {
+async function fetchProducts(filter: string, orderBy: string, limit: number): Promise<Product[]> {
   await connection();
 
   const rows = await query<ProductRow>(
     `${PRODUCT_SELECT}
-       AND p.stock_quantity > 0
-     ORDER BY
-       (p.discount_price IS NOT NULL AND p.discount_price < p.price) DESC,
-       p.created_at DESC NULLS LAST
-     LIMIT 1`
-  );
-
-  return rows[0] ? mapProduct(rows[0]) : null;
-}
-
-export async function getProducts(limit = 10): Promise<Product[]> {
-  await connection();
-  const safeLimit = Number.isFinite(limit) ? Math.max(1, Math.trunc(limit)) : 10;
-
-  const rows = await query<ProductRow>(
-    `${PRODUCT_SELECT}
-     ORDER BY (p.stock_quantity > 0) DESC, p.created_at DESC NULLS LAST
-     LIMIT ${safeLimit}`
+       ${filter}
+     ORDER BY ${orderBy}
+     LIMIT ${clampLimit(limit)}`
   );
 
   return rows.map(mapProduct);
 }
 
-export async function getTopRatedProducts(limit = 10): Promise<Product[]> {
-  await connection();
+export const getProducts = cache((limit = 10) =>
+  fetchProducts('', '(p.stock_quantity > 0) DESC, p.created_at DESC NULLS LAST', limit)
+);
 
-  const safeLimit = Number.isFinite(limit) ? Math.max(1, Math.trunc(limit)) : 10;
+export const getTopRatedProducts = cache((limit = 10) =>
+  fetchProducts(
+    'AND rv.num_reviews > 0',
+    'rv.rating DESC, rv.num_reviews DESC, p.created_at DESC NULLS LAST',
+    limit
+  )
+);
 
-  const rows = await query<ProductRow>(
-    `${PRODUCT_SELECT}
-       AND rv.num_reviews > 0
-     ORDER BY rv.rating DESC, rv.num_reviews DESC, p.created_at DESC NULLS LAST
-     LIMIT ${safeLimit}`
-  );
-
-  return rows.map(mapProduct);
-}
+export const getDiscountedProducts = cache((limit = 5) =>
+  fetchProducts(
+    `AND p.stock_quantity > 0
+     AND p.discount_price IS NOT NULL
+     AND p.discount_price < p.price`,
+    '(p.price - p.discount_price) DESC, p.created_at DESC NULLS LAST',
+    limit
+  )
+);

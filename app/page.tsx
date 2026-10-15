@@ -1,9 +1,9 @@
 // app/page.tsx
 import { Suspense } from 'react';
 import Advertising from '@/components/product/Advertising';
-import CategoryCard from '@/components/product/CategoryCard';
-import ProductCard from '@/components/product/ProductCard';
-import { getFeaturedProduct, getProducts, getTopRatedProducts } from '@/lib/products';
+import CategoryCarousel from '@/components/product/CategoryCarousel';
+import ProductCarousel from '@/components/product/ProductCarousel';
+import { getDiscountedProducts, getProducts, getTopRatedProducts } from '@/lib/products';
 import { getCategories } from '@/lib/categories';
 
 const categoriesGrid =
@@ -85,24 +85,16 @@ function GridFallback({
 }
 
 async function HomeAdvertising() {
-  const product = await getFeaturedProduct();
-  if (!product) return null;
-  return <Advertising product={product} />;
+  const featured = await getDiscountedProducts(5);
+  if (!featured.length) return null;
+  return <Advertising products={featured} />;
 }
 
 async function HomeCategories() {
   const categories = await getCategories();
   if (!categories.length) return null;
 
-  return (
-    <Section id="categories-heading" title="Featured categories">
-      <div className={categoriesGrid}>
-        {categories.map((c) => (
-          <CategoryCard key={c.slug} name={c.name} image_url={c.image_url} href={`/category/${c.slug}`} />
-        ))}
-      </div>
-    </Section>
-  );
+  return <CategoryCarousel categories={categories} />;
 }
 
 async function HomeProducts() {
@@ -110,13 +102,13 @@ async function HomeProducts() {
   if (!products.length) return null;
 
   return (
-    <Section id="products-heading" title="Featured products" align="center" className="bg-slate-50">
-      <div className={productsGrid}>
-        {products.map((p) => (
-          <ProductCard key={p.slug} product={p} />
-        ))}
-      </div>
-    </Section>
+    <ProductCarousel
+      id="products-heading"
+      title="Featured products"
+      products={products}
+      align="center"
+      className="bg-slate-50"
+    />
   );
 }
 
@@ -125,13 +117,11 @@ async function TopRatedProducts() {
   if (!products.length) return null;
 
   return (
-    <Section id="top-rated-heading" title="Top rated products">
-      <div className={productsGrid}>
-        {products.map((p) => (
-          <ProductCard key={p.slug} product={p} />
-        ))}
-      </div>
-    </Section>
+    <ProductCarousel
+      id="top-rated-heading"
+      title="Top rated products"
+      products={products}
+    />
   );
 }
 

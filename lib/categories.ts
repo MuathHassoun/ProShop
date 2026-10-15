@@ -10,13 +10,23 @@ export type Category = {
   image_url: string | null;
 };
 
-export async function getCategories(): Promise<Category[]> {
+type Scope = 'all' | 'top' | 'leaf';
+
+const WHERE: Record<Scope, string> = {
+  all: '',
+  top: 'WHERE parent_id IS NULL',
+  leaf: `WHERE NOT EXISTS (
+           SELECT 1 FROM categories c WHERE c.parent_id = categories.category_id
+         )`,
+};
+
+export async function getCategories(scope: Scope = 'all'): Promise<Category[]> {
   await connection();
 
   return query<Category>(
     `SELECT category_id, name, slug, image_url
      FROM categories
-     WHERE parent_id IS NULL
+     ${WHERE[scope]}
      ORDER BY name`
   );
 }
