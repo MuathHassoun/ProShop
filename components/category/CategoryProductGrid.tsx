@@ -11,9 +11,10 @@ export default function CategoryProductGrid({ products }: { products: Product[] 
 
   const handleAdd = (product: Product) => {
     const stock = product.stock_quantity ?? 0;
-    if (stock <= 0) return;
+    if (stock <= 0 || product.variant_id === undefined) return;
+    const variantId = product.variant_id;
 
-    const inCart = cartItems.find((i) => i.product_id === product.product_id)?.quantity ?? 0;
+    const inCart = cartItems.find((i) => i.variant_id === variantId)?.quantity ?? 0;
     const hasDiscount =
       product.discount_price !== null &&
       product.discount_price !== undefined &&
@@ -21,6 +22,7 @@ export default function CategoryProductGrid({ products }: { products: Product[] 
 
     dispatch(
       addToCart({
+        variant_id: variantId,
         product_id: product.product_id,
         name: product.name,
         slug: product.slug,

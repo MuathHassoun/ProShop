@@ -29,9 +29,13 @@ const getInitialState = (): CartState => {
       const stored = localStorage.getItem('proshop_cart');
       if (stored) {
         const parsed = JSON.parse(stored);
+        // Drop lines saved before carts were keyed by variant_id
+        const items: CartItem[] = (parsed.cartItems || []).filter(
+          (i: Partial<CartItem>) => typeof i.variant_id === 'number'
+        );
         return {
-          cartItems: parsed.cartItems || [],
-          ...calculateTotals(parsed.cartItems || []),
+          cartItems: items,
+          ...calculateTotals(items),
         };
       }
     } catch {
@@ -56,7 +60,7 @@ const cartSlice = createSlice({
     addToCart: (state, action: PayloadAction<CartItem>) => {
       const newItem = action.payload;
       const existItemIndex = state.cartItems.findIndex(
-        (item) => item.product_id === newItem.product_id
+        (item) => item.variant_id === newItem.variant_id
       );
 
       if (existItemIndex !== -1) {
@@ -80,7 +84,7 @@ const cartSlice = createSlice({
     },
     removeFromCart: (state, action: PayloadAction<number>) => {
       state.cartItems = state.cartItems.filter(
-        (item) => item.product_id !== action.payload
+        (item) => item.variant_id !== action.payload
       );
 
       const totals = calculateTotals(state.cartItems);
@@ -95,10 +99,10 @@ const cartSlice = createSlice({
     },
     updateQuantity: (
       state,
-      action: PayloadAction<{ product_id: number; quantity: number }>
+      action: PayloadAction<{ variant_id: number; quantity: number }>
     ) => {
-      const { product_id, quantity } = action.payload;
-      const item = state.cartItems.find((item) => item.product_id === product_id);
+      const { variant_id, quantity } = action.payload;
+      const item = state.cartItems.find((item) => item.variant_id === variant_id);
       if (item) {
         item.quantity = Math.max(1, Math.min(quantity, item.stock_quantity || 99));
       }

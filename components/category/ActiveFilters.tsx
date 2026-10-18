@@ -33,6 +33,7 @@ export default function ActiveFilters({ basePath, filters, brands }: Props) {
       href: hrefWith(basePath, filters, { brands: filters.brands.filter((b) => b !== id) }),
     });
   }
+  
   if (filters.minPrice !== null || filters.maxPrice !== null) {
     chips.push({
       key: 'price',
@@ -46,7 +47,6 @@ export default function ActiveFilters({ basePath, filters, brands }: Props) {
   if (filters.onSale) {
     chips.push({ key: 'sale', label: 'On sale', href: hrefWith(basePath, filters, { onSale: false }) });
   }
-
   if (chips.length === 0) return null;
 
   return (

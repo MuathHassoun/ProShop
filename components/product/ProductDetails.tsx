@@ -52,10 +52,6 @@ function SectionTitle({ id, children }: { id: string; children: ReactNode }) {
 export default function ProductDetails({ product, images, specs, variants, reviewsSlot }: Props) {
   const router = useRouter();
   const dispatch = useAppDispatch();
-  const inCart = useAppSelector(
-    (s) => s.cart.cartItems.find((i) => i.product_id === product.product_id)?.quantity ?? 0
-  );
-
   const gallery = useMemo(() => {
     const urls = images.map((i) => i.image_url);
     if (!urls.length && product.image_url) urls.push(product.image_url);
@@ -78,6 +74,17 @@ export default function ProductDetails({ product, images, specs, variants, revie
   const [selected, setSelected] = useState<Record<string, string>>(() =>
     Object.fromEntries(optionGroups.map(([key, values]) => [key, values[0]]))
   );
+  const activeVariant = useMemo(
+    () =>
+      variants.find((v) => Object.entries(selected).every(([k, val]) => v.options[k] === val)) ??
+      variants[0] ??
+      null,
+    [variants, selected]
+  );
+  const variantId = activeVariant?.variant_id ?? product.variant_id ?? 0;
+  const inCart = useAppSelector(
+    (s) => s.cart.cartItems.find((i) => i.variant_id === variantId)?.quantity ?? 0
+  );
   const [wishlisted, setWishlisted] = useState(false);
   const [added, setAdded] = useState(false);
   const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -86,13 +93,13 @@ export default function ProductDetails({ product, images, specs, variants, revie
     if (resetTimer.current) clearTimeout(resetTimer.current);
   }, []);
 
+  const basePrice = activeVariant?.price ?? product.price;
+  const baseDiscount = activeVariant ? activeVariant.discount_price : product.discount_price;
   const hasDiscount =
-    product.discount_price !== null &&
-    product.discount_price !== undefined &&
-    product.discount_price < product.price;
-  const price = hasDiscount ? (product.discount_price as number) : product.price;
-  const discountPct = hasDiscount ? Math.round((1 - price / product.price) * 100) : 0;
-  const stock = product.stock_quantity ?? 0;
+    baseDiscount !== null && baseDiscount !== undefined && baseDiscount < basePrice;
+  const price = hasDiscount ? (baseDiscount as number) : basePrice;
+  const discountPct = hasDiscount ? Math.round((1 - price / basePrice) * 100) : 0;
+  const stock = activeVariant?.stock_quantity ?? product.stock_quantity ?? 0;
   const inStock = stock > 0;
   const remaining = Math.max(stock - inCart, 0);
   const canAddMore = remaining > 0;
@@ -101,6 +108,8 @@ export default function ProductDetails({ product, images, specs, variants, revie
     if (!inStock || !canAddMore) return;
     dispatch(
       addToCart({
+        variant_id: variantId,
+        variant_name: activeVariant?.variant_name ?? null,
         product_id: product.product_id,
         name: product.name,
         slug: product.slug,
@@ -171,7 +180,7 @@ export default function ProductDetails({ product, images, specs, variants, revie
               </p>
               {hasDiscount && (
                 <p className="text-base text-neutral-400 line-through tabular-nums">
-                  {formatPrice(product.price)}
+                  {formatPrice(basePrice)}
                 </p>
               )}
             </div>

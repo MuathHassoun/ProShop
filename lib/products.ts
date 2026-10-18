@@ -16,6 +16,7 @@ type ProductRow = {
   price: string | number;
   discount_price: string | number | null;
   stock_quantity: number | null;
+  variant_id: number | null;
   is_active: boolean | null;
   created_at: string | Date | null;
   category_name: string;
@@ -40,6 +41,29 @@ function clampLimit(limit: number, fallback = 10): number {
   return Number.isFinite(limit) ? Math.max(1, Math.trunc(limit)) : fallback;
 }
 
+/**
+ * Price, discount and stock now live on product_variants.
+ * For listings we show the cheapest active variant ("from" price)
+ * and the total stock across all active variants.
+ * Alias: vr  ->  vr.price, vr.discount_price, vr.stock_quantity
+ */
+const VARIANT_LATERAL = `
+  LEFT JOIN LATERAL (
+    SELECT
+      COALESCE(SUM(x.stock_quantity), 0)::int AS stock_quantity,
+      (ARRAY_AGG(x.variant_id ORDER BY x.eff ASC, x.variant_id ASC))[1] AS variant_id,
+      (ARRAY_AGG(x.price ORDER BY x.eff ASC, x.variant_id ASC))[1] AS price,
+      (ARRAY_AGG(x.discount_price ORDER BY x.eff ASC, x.variant_id ASC))[1] AS discount_price
+    FROM (
+      SELECT v.variant_id, v.price, v.discount_price, v.stock_quantity,
+             CASE WHEN v.discount_price IS NOT NULL AND v.discount_price < v.price
+                  THEN v.discount_price ELSE v.price END AS eff
+      FROM product_variants v
+      WHERE v.product_id = p.product_id AND v.is_active = TRUE
+    ) x
+  ) vr ON TRUE
+`;
+
 const PRODUCT_SELECT = `
   SELECT
     p.product_id,
@@ -48,9 +72,10 @@ const PRODUCT_SELECT = `
     p.name,
     p.slug,
     p.description,
-    p.price,
-    p.discount_price,
-    p.stock_quantity,
+    vr.price,
+    vr.discount_price,
+    vr.stock_quantity,
+    vr.variant_id,
     p.is_active,
     p.created_at,
     c.name AS category_name,
@@ -73,7 +98,9 @@ const PRODUCT_SELECT = `
     FROM reviews r
     WHERE r.product_id = p.product_id
   ) rv ON TRUE
+  ${VARIANT_LATERAL}
   WHERE p.is_active = TRUE
+    AND vr.price IS NOT NULL
 `;
 
 function mapProduct(row: ProductRow): Product {
@@ -90,6 +117,7 @@ function mapProduct(row: ProductRow): Product {
     price,
     discount_price: discount !== null && discount < price ? discount : null,
     stock_quantity: row.stock_quantity ?? 0,
+    variant_id: row.variant_id !== null && row.variant_id !== undefined ? Number(row.variant_id) : undefined,
     is_active: row.is_active ?? true,
     created_at: toISO(row.created_at),
     category_name: row.category_name,
@@ -114,7 +142,7 @@ async function fetchProducts(filter: string, orderBy: string, limit: number): Pr
 }
 
 export const getProducts = cache((limit = 10) =>
-  fetchProducts('', '(p.stock_quantity > 0) DESC, p.created_at DESC NULLS LAST', limit)
+  fetchProducts('', '(vr.stock_quantity > 0) DESC, p.created_at DESC NULLS LAST', limit)
 );
 
 export const getTopRatedProducts = cache((limit = 10) =>
@@ -127,10 +155,10 @@ export const getTopRatedProducts = cache((limit = 10) =>
 
 export const getDiscountedProducts = cache((limit = 5) =>
   fetchProducts(
-    `AND p.stock_quantity > 0
-     AND p.discount_price IS NOT NULL
-     AND p.discount_price < p.price`,
-    '(p.price - p.discount_price) DESC, p.created_at DESC NULLS LAST',
+    `AND vr.stock_quantity > 0
+     AND vr.discount_price IS NOT NULL
+     AND vr.discount_price < vr.price`,
+    '(vr.price - vr.discount_price) DESC, p.created_at DESC NULLS LAST',
     limit
   )
 );
@@ -207,24 +235,40 @@ export const getProductVariants = cache(async (productId: number): Promise<Produ
   const rows = await safeQuery<{
     variant_id: number;
     product_id: number;
+    sku: string | null;
     variant_name: string | null;
     options: Record<string, unknown> | null;
+    price: string | number;
+    discount_price: string | number | null;
+    currency: string;
+    stock_quantity: number;
   }>(
-    `SELECT variant_id, product_id, variant_name, options
+    `SELECT variant_id, product_id, sku, variant_name, options,
+            price, discount_price, currency, stock_quantity
      FROM product_variants
      WHERE product_id = $1 AND is_active = TRUE
      ORDER BY variant_id`,
     [productId]
   );
 
-  return rows.map((r) => ({
-    variant_id: Number(r.variant_id),
-    product_id: Number(r.product_id),
-    variant_name: r.variant_name,
-    options: Object.fromEntries(
-      Object.entries(r.options ?? {}).map(([k, v]) => [k, String(v)])
-    ),
-  }));
+  return rows.map((r) => {
+    const price = toNumber(r.price) ?? 0;
+    const discount = toNumber(r.discount_price);
+
+    return {
+      variant_id: Number(r.variant_id),
+      product_id: Number(r.product_id),
+      sku: r.sku,
+      variant_name: r.variant_name,
+      options: Object.fromEntries(
+        Object.entries(r.options ?? {}).map(([k, v]) => [k, String(v)])
+      ),
+      price,
+      discount_price: discount !== null && discount < price ? discount : null,
+      currency: r.currency,
+      stock_quantity: Number(r.stock_quantity ?? 0),
+    };
+  });
 });
 
 export const getProductReviews = cache(async (productId: number): Promise<Review[]> => {
@@ -271,7 +315,7 @@ export const getRelatedProducts = cache(
          AND p.category_id = $1
          AND p.product_id <> $2
        ORDER BY
-         (p.stock_quantity > 0) DESC,
+         (vr.stock_quantity > 0) DESC,
          COALESCE(rv.rating, 0) DESC,
          COALESCE(rv.num_reviews, 0) DESC,
          p.created_at DESC NULLS LAST
@@ -283,8 +327,8 @@ export const getRelatedProducts = cache(
   }
 );
 
-const EFFECTIVE_PRICE = `(CASE WHEN p.discount_price IS NOT NULL AND p.discount_price < p.price
-                              THEN p.discount_price ELSE p.price END)`;
+const EFFECTIVE_PRICE = `(CASE WHEN vr.discount_price IS NOT NULL AND vr.discount_price < vr.price
+                              THEN vr.discount_price ELSE vr.price END)`;
 
 const TREE_CTE = `WITH RECURSIVE tree AS (
   SELECT category_id FROM categories WHERE category_id = $1
@@ -293,31 +337,34 @@ const TREE_CTE = `WITH RECURSIVE tree AS (
 )`;
 
 const CATEGORY_ORDER: Record<SortKey, string> = {
-  featured: '(COALESCE(p.stock_quantity, 0) > 0) DESC, p.created_at DESC NULLS LAST, p.product_id DESC',
+  featured: '(COALESCE(vr.stock_quantity, 0) > 0) DESC, p.created_at DESC NULLS LAST, p.product_id DESC',
   newest: 'p.created_at DESC NULLS LAST, p.product_id DESC',
   'price-asc': `${EFFECTIVE_PRICE} ASC, p.product_id ASC`,
   'price-desc': `${EFFECTIVE_PRICE} DESC, p.product_id ASC`,
   'top-rated': 'COALESCE(rv.rating, 0) DESC, COALESCE(rv.num_reviews, 0) DESC, p.product_id ASC',
 };
 
-function buildCategoryWhere(categoryId: number, f: CatalogFilters) {
-  const params: (string | number | boolean | null)[] = [categoryId];
+type SqlParam = string | number | boolean | null;
+
+function buildWhere(f: CatalogFilters, params: SqlParam[], conditions: string[]) {
   const push = (value: string | number) => {
     params.push(value);
     return `$${params.length}`;
   };
-
-  const conditions = ['p.category_id IN (SELECT category_id FROM tree)'];
 
   if (f.brands.length) {
     conditions.push(`p.brand_id IN (${f.brands.map((id) => push(id)).join(', ')})`);
   }
   if (f.minPrice !== null) conditions.push(`${EFFECTIVE_PRICE} >= ${push(f.minPrice)}`);
   if (f.maxPrice !== null) conditions.push(`${EFFECTIVE_PRICE} <= ${push(f.maxPrice)}`);
-  if (f.inStock) conditions.push('p.stock_quantity > 0');
-  if (f.onSale) conditions.push('(p.discount_price IS NOT NULL AND p.discount_price < p.price)');
+  if (f.inStock) conditions.push('vr.stock_quantity > 0');
+  if (f.onSale) conditions.push('(vr.discount_price IS NOT NULL AND vr.discount_price < vr.price)');
 
   return { params, where: conditions.map((c) => `AND ${c}`).join('\n') };
+}
+
+function buildCategoryWhere(categoryId: number, f: CatalogFilters) {
+  return buildWhere(f, [categoryId], ['p.category_id IN (SELECT category_id FROM tree)']);
 }
 
 export async function getCategoryProducts(
@@ -342,7 +389,9 @@ export async function getCategoryProducts(
       `${TREE_CTE}
        SELECT COUNT(*) AS count
        FROM products p
+       ${VARIANT_LATERAL}
        WHERE p.is_active = TRUE
+         AND vr.price IS NOT NULL
          ${where}`,
       params
     ),
@@ -367,7 +416,9 @@ export const getCategoryFacets = cache(async (categoryId: number): Promise<Categ
        SELECT b.brand_id, b.name, COUNT(*) AS count
        FROM products p
        JOIN brands b ON b.brand_id = p.brand_id
+       ${VARIANT_LATERAL}
        WHERE p.is_active = TRUE
+         AND vr.price IS NOT NULL
          AND p.category_id IN (SELECT category_id FROM tree)
        GROUP BY b.brand_id, b.name
        ORDER BY b.name`,
@@ -377,9 +428,80 @@ export const getCategoryFacets = cache(async (categoryId: number): Promise<Categ
       `${TREE_CTE}
        SELECT MIN(${EFFECTIVE_PRICE}) AS min_price, MAX(${EFFECTIVE_PRICE}) AS max_price
        FROM products p
+       ${VARIANT_LATERAL}
        WHERE p.is_active = TRUE
+         AND vr.price IS NOT NULL
          AND p.category_id IN (SELECT category_id FROM tree)`,
       [categoryId]
+    ),
+  ]);
+
+  const brands = brandRows.map((r) => ({
+    brand_id: Number(r.brand_id),
+    name: r.name,
+    count: Number(r.count),
+  }));
+
+  return {
+    brands,
+    total: brands.reduce((sum, b) => sum + b.count, 0),
+    minPrice: toNumber(boundRows[0]?.min_price),
+    maxPrice: toNumber(boundRows[0]?.max_price),
+  };
+});
+
+/* ---------- All products (/products) ---------- */
+
+export async function getAllProducts(
+  f: CatalogFilters
+): Promise<{ products: Product[]; total: number }> {
+  await connection();
+
+  const { params, where } = buildWhere(f, [], []);
+  const offset = (f.page - 1) * PAGE_SIZE;
+
+  const [rows, counts] = await Promise.all([
+    query<ProductRow>(
+      `${PRODUCT_SELECT}
+         ${where}
+       ORDER BY ${CATEGORY_ORDER[f.sort]}
+       LIMIT ${PAGE_SIZE} OFFSET ${offset}`,
+      params
+    ),
+    query<{ count: string | number }>(
+      `SELECT COUNT(*) AS count
+       FROM products p
+       ${VARIANT_LATERAL}
+       WHERE p.is_active = TRUE
+         AND vr.price IS NOT NULL
+         ${where}`,
+      params
+    ),
+  ]);
+
+  return { products: rows.map(mapProduct), total: Number(counts[0]?.count ?? 0) };
+}
+
+export const getAllFacets = cache(async (): Promise<CategoryFacets> => {
+  await connection();
+
+  const [brandRows, boundRows] = await Promise.all([
+    query<{ brand_id: number; name: string; count: string | number }>(
+      `SELECT b.brand_id, b.name, COUNT(*) AS count
+       FROM products p
+       JOIN brands b ON b.brand_id = p.brand_id
+       ${VARIANT_LATERAL}
+       WHERE p.is_active = TRUE
+         AND vr.price IS NOT NULL
+       GROUP BY b.brand_id, b.name
+       ORDER BY b.name`
+    ),
+    query<{ min_price: string | number | null; max_price: string | number | null }>(
+      `SELECT MIN(${EFFECTIVE_PRICE}) AS min_price, MAX(${EFFECTIVE_PRICE}) AS max_price
+       FROM products p
+       ${VARIANT_LATERAL}
+       WHERE p.is_active = TRUE
+         AND vr.price IS NOT NULL`
     ),
   ]);
 

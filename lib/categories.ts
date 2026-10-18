@@ -85,3 +85,35 @@ export const getCategoryTrail = cache(
     );
   }
 );
+
+export type CategoryNode = Category & { children: Category[] };
+
+/** Active categories grouped as top-level categories with their direct children. */
+export const getCategoryTree = cache(async (): Promise<CategoryNode[]> => {
+  await connection();
+
+  const rows = await query<Category & { parent_id: number | null }>(
+    `SELECT category_id, parent_id, name, slug, image_url
+     FROM categories
+     WHERE is_active = TRUE
+     ORDER BY name`
+  );
+
+  const byParent = new Map<number, Category[]>();
+  for (const r of rows) {
+    if (r.parent_id === null) continue;
+    const list = byParent.get(Number(r.parent_id)) ?? [];
+    list.push({ category_id: r.category_id, name: r.name, slug: r.slug, image_url: r.image_url });
+    byParent.set(Number(r.parent_id), list);
+  }
+
+  return rows
+    .filter((r) => r.parent_id === null)
+    .map((r) => ({
+      category_id: r.category_id,
+      name: r.name,
+      slug: r.slug,
+      image_url: r.image_url,
+      children: byParent.get(Number(r.category_id)) ?? [],
+    }));
+});

@@ -46,3 +46,4 @@ schema.sql
 # note
 long-term.txt
 *.txt
+*.sql

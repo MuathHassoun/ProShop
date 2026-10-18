@@ -7,7 +7,6 @@ export interface User {
   phone?: string | null;
   role: 'admin' | 'customer';
   created_at: string;
-  // Optional profile fields (not in the users table yet)
   birthday?: string | null;
   avatar_url?: string | null;
 }
@@ -15,10 +14,13 @@ export interface User {
 export interface ShippingAddress {
   address_id: number;
   user_id: number;
+  recipient_name?: string;
+  phone?: string | null;
   country: string;
   city: string;
   zip_code: string;
   street_address: string;
+  address_details?: string | null;
   is_default: boolean;
 }
 
@@ -60,6 +62,7 @@ export interface Product {
   price: number;
   discount_price?: number | null;
   stock_quantity: number;
+  variant_id?: number; // the variant shown on listings (cheapest active)
   is_active: boolean;
   created_at: string;
   // Joined or augmented fields
@@ -68,13 +71,30 @@ export interface Product {
   image_url?: string;
   images?: ProductImage[];
   specs?: ProductSpec[];
+  variants?: ProductVariant[];
   rating?: number;
   num_reviews?: number;
 }
 
+export interface ProductVariant {
+  variant_id: number;
+  product_id: number;
+  sku?: string | null;
+  variant_name?: string | null;
+  options: Record<string, string>;
+  price: number;
+  discount_price?: number | null;
+  currency: string;
+  stock_quantity: number;
+}
+
+// Cart lines are per variant. price = the effective unit price
+// (discount_price when set, otherwise price).
 export interface CartItem {
+  variant_id: number;
   product_id: number;
   name: string;
+  variant_name?: string | null;
   slug: string;
   price: number;
   image_url: string;
@@ -93,30 +113,30 @@ export interface Review {
   title?: string | null;
 }
 
+// Snapshot columns keep history valid if a product or variant is deleted
 export interface OrderItem {
   order_item_id: number;
   order_id: number;
-  product_id: number;
-  product_name?: string;
+  variant_id?: number | null;
+  product_name: string;
+  variant_name?: string | null;
+  sku?: string | null;
   quantity: number;
   unit_price: number;
+  currency?: string;
 }
 
 export interface Order {
   order_id: number;
   user_id: number;
-  address_id: number;
+  address_id?: number | null;
+  payment_method_id?: number | null;
   total_amount: number;
+  currency?: string;
   status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
-  payment_status: 'unpaid' | 'paid' | 'refunded';
+  payment_status: 'unpaid' | 'paid' | 'refunded' | 'failed';
   payment_method?: string | null;
+  shipping_address_snapshot?: Record<string, unknown> | null;
   created_at: string;
   items?: OrderItem[];
-}
-
-export interface ProductVariant {
-  variant_id: number;
-  product_id: number;
-  variant_name?: string | null;
-  options: Record<string, string>;
 }
