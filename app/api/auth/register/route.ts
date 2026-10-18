@@ -33,7 +33,8 @@ export async function POST(request: Request) {
       `INSERT INTO users (full_name, email, password_hash)
        VALUES ($1, $2, $3)
        ON CONFLICT (email) DO NOTHING
-       RETURNING user_id, full_name, email, phone, role, created_at`,
+       RETURNING user_id, full_name, email, phone, role, created_at,
+                 to_char(birthday, 'YYYY-MM-DD') AS birthday`,
       [name, email, await hashPassword(password)]
     );
 

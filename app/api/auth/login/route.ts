@@ -23,7 +23,8 @@ export async function POST(request: Request) {
 
   try {
     const rows = await query<UserRow>(
-      `SELECT user_id, full_name, email, phone, role, created_at, password_hash
+      `SELECT user_id, full_name, email, phone, role, created_at,
+              to_char(birthday, 'YYYY-MM-DD') AS birthday, password_hash
        FROM users WHERE email = $1`,
       [email]
     );
