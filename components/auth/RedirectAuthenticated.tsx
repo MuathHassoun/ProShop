@@ -11,7 +11,7 @@ export default function RedirectAuthenticated() {
   const mounted = useSyncExternalStore(subscribeNever, () => true, () => false);
 
   useEffect(() => {
-    if (mounted && user) router.replace('/profile');
+    if (mounted && user) router.replace('/');
   }, [mounted, user, router]);
 
   return null;

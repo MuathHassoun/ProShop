@@ -1,4 +1,4 @@
-// components/product/CategoryCard.tsx
+// components/category/CategoryCard.tsx
 import Image from 'next/image';
 import Link from 'next/link';
 

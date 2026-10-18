@@ -1,7 +1,7 @@
 // app/page.tsx
 import { Suspense } from 'react';
 import Advertising from '@/components/product/Advertising';
-import CategoryCarousel from '@/components/product/CategoryCarousel';
+import CategoryCarousel from '@/components/category/CategoryCarousel';
 import ProductCarousel from '@/components/product/ProductCarousel';
 import { getDiscountedProducts, getProducts, getTopRatedProducts } from '@/lib/products';
 import { getCategories } from '@/lib/categories';

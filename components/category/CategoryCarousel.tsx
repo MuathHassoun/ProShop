@@ -1,9 +1,9 @@
-// components/product/CategoryCarousel.tsx
+// components/category/CategoryCarousel.tsx
 'use client';
 import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import CategoryCard from './CategoryCard';
-import SeeMoreCard from './SeeMoreCard';
+import SeeMoreCard from '../common/cards/SeeMoreCard';
 
 interface CategoryItem {
   slug: string;

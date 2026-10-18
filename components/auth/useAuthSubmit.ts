@@ -1,6 +1,5 @@
 // components/auth/useAuthSubmit.ts
 'use client';
-
 import { useCallback, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppDispatch } from '@/store/hooks';

@@ -3,7 +3,8 @@ import 'server-only';
 import { cache } from 'react';
 import { connection } from 'next/server';
 import { query } from '@/lib/db';
-import type { Product } from '@/types';
+import type { Product, ProductImage, ProductSpec, ProductVariant, Review } from '@/types';
+import { PAGE_SIZE, type CatalogFilters, type SortKey } from '@/lib/catalog-params';
 
 type ProductRow = {
   product_id: number;
@@ -133,3 +134,265 @@ export const getDiscountedProducts = cache((limit = 5) =>
     limit
   )
 );
+
+export const getProductBySlug = cache(async (slug: string): Promise<Product | null> => {
+  await connection();
+
+  const rows = await query<ProductRow>(`${PRODUCT_SELECT} AND p.slug = $1 LIMIT 1`, [slug]);
+  return rows[0] ? mapProduct(rows[0]) : null;
+});
+
+async function safeQuery<T>(sqlText: string, params: (string | number)[]): Promise<T[]> {
+  try {
+    return await query<T>(sqlText, params);
+  } catch {
+    return [];
+  }
+}
+
+export const getProductImages = cache(async (productId: number): Promise<ProductImage[]> => {
+  await connection();
+
+  const rows = await safeQuery<{ image_id: number; product_id: number; image_url: string; is_main: boolean }>(
+    `SELECT image_id, product_id, image_url, is_main
+     FROM product_images
+     WHERE product_id = $1
+     ORDER BY is_main DESC, display_order ASC, image_id ASC`,
+    [productId]
+  );
+
+  return rows.map((r) => ({
+    image_id: Number(r.image_id),
+    product_id: Number(r.product_id),
+    image_url: r.image_url,
+    is_main: Boolean(r.is_main),
+  }));
+});
+
+export const getProductSpecs = cache(async (productId: number): Promise<ProductSpec[]> => {
+  await connection();
+
+  const rows = await safeQuery<{ spec_key: string; spec_value: string }>(
+    `SELECT
+       a.name AS spec_key,
+       COALESCE(
+         v.value_text,
+         CASE WHEN v.value_number IS NOT NULL
+              THEN TRIM(v.value_number::text || ' ' || COALESCE(a.unit, '')) END,
+         CASE WHEN v.value_boolean IS NOT NULL
+              THEN CASE WHEN v.value_boolean THEN 'Yes' ELSE 'No' END END,
+         v.value_date::text
+       ) AS spec_value
+     FROM product_attribute_values v
+     JOIN attributes a ON a.attribute_id = v.attribute_id
+     JOIN products p ON p.product_id = v.product_id
+     LEFT JOIN category_attributes ca
+       ON ca.attribute_id = a.attribute_id AND ca.category_id = p.category_id
+     WHERE v.product_id = $1
+     ORDER BY COALESCE(ca.display_order, 9999), a.name`,
+    [productId]
+  );
+
+  return rows.map((r, i) => ({
+    spec_id: i,
+    product_id: productId,
+    spec_key: r.spec_key,
+    spec_value: r.spec_value ?? '',
+  }));
+});
+
+export const getProductVariants = cache(async (productId: number): Promise<ProductVariant[]> => {
+  await connection();
+
+  const rows = await safeQuery<{
+    variant_id: number;
+    product_id: number;
+    variant_name: string | null;
+    options: Record<string, unknown> | null;
+  }>(
+    `SELECT variant_id, product_id, variant_name, options
+     FROM product_variants
+     WHERE product_id = $1 AND is_active = TRUE
+     ORDER BY variant_id`,
+    [productId]
+  );
+
+  return rows.map((r) => ({
+    variant_id: Number(r.variant_id),
+    product_id: Number(r.product_id),
+    variant_name: r.variant_name,
+    options: Object.fromEntries(
+      Object.entries(r.options ?? {}).map(([k, v]) => [k, String(v)])
+    ),
+  }));
+});
+
+export const getProductReviews = cache(async (productId: number): Promise<Review[]> => {
+  await connection();
+
+  const rows = await safeQuery<{
+    review_id: number;
+    product_id: number;
+    user_id: number;
+    rating: number;
+    title: string | null;
+    comment: string | null;
+    created_at: string | Date;
+    user_name: string | null;
+  }>(
+    `SELECT r.review_id, r.product_id, r.user_id, r.rating, r.title, r.comment,
+            r.created_at, u.full_name AS user_name
+     FROM reviews r
+     JOIN users u ON u.user_id = r.user_id
+     WHERE r.product_id = $1
+     ORDER BY r.created_at DESC
+     LIMIT 50`,
+    [productId]
+  );
+
+  return rows.map((r) => ({
+    review_id: Number(r.review_id),
+    product_id: Number(r.product_id),
+    user_id: Number(r.user_id),
+    rating: Number(r.rating),
+    title: r.title,
+    comment: r.comment,
+    created_at: toISO(r.created_at),
+    user_name: r.user_name ?? 'Anonymous',
+  }));
+});
+
+export const getRelatedProducts = cache(
+  async (categoryId: number, excludeProductId: number, limit = 8): Promise<Product[]> => {
+    await connection();
+
+    const rows = await query<ProductRow>(
+      `${PRODUCT_SELECT}
+         AND p.category_id = $1
+         AND p.product_id <> $2
+       ORDER BY
+         (p.stock_quantity > 0) DESC,
+         COALESCE(rv.rating, 0) DESC,
+         COALESCE(rv.num_reviews, 0) DESC,
+         p.created_at DESC NULLS LAST
+       LIMIT ${clampLimit(limit)}`,
+      [categoryId, excludeProductId]
+    );
+
+    return rows.map(mapProduct);
+  }
+);
+
+const EFFECTIVE_PRICE = `(CASE WHEN p.discount_price IS NOT NULL AND p.discount_price < p.price
+                              THEN p.discount_price ELSE p.price END)`;
+
+const TREE_CTE = `WITH RECURSIVE tree AS (
+  SELECT category_id FROM categories WHERE category_id = $1
+  UNION
+  SELECT c.category_id FROM categories c JOIN tree t ON c.parent_id = t.category_id
+)`;
+
+const CATEGORY_ORDER: Record<SortKey, string> = {
+  featured: '(COALESCE(p.stock_quantity, 0) > 0) DESC, p.created_at DESC NULLS LAST, p.product_id DESC',
+  newest: 'p.created_at DESC NULLS LAST, p.product_id DESC',
+  'price-asc': `${EFFECTIVE_PRICE} ASC, p.product_id ASC`,
+  'price-desc': `${EFFECTIVE_PRICE} DESC, p.product_id ASC`,
+  'top-rated': 'COALESCE(rv.rating, 0) DESC, COALESCE(rv.num_reviews, 0) DESC, p.product_id ASC',
+};
+
+function buildCategoryWhere(categoryId: number, f: CatalogFilters) {
+  const params: (string | number | boolean | null)[] = [categoryId];
+  const push = (value: string | number) => {
+    params.push(value);
+    return `$${params.length}`;
+  };
+
+  const conditions = ['p.category_id IN (SELECT category_id FROM tree)'];
+
+  if (f.brands.length) {
+    conditions.push(`p.brand_id IN (${f.brands.map((id) => push(id)).join(', ')})`);
+  }
+  if (f.minPrice !== null) conditions.push(`${EFFECTIVE_PRICE} >= ${push(f.minPrice)}`);
+  if (f.maxPrice !== null) conditions.push(`${EFFECTIVE_PRICE} <= ${push(f.maxPrice)}`);
+  if (f.inStock) conditions.push('p.stock_quantity > 0');
+  if (f.onSale) conditions.push('(p.discount_price IS NOT NULL AND p.discount_price < p.price)');
+
+  return { params, where: conditions.map((c) => `AND ${c}`).join('\n') };
+}
+
+export async function getCategoryProducts(
+  categoryId: number,
+  f: CatalogFilters
+): Promise<{ products: Product[]; total: number }> {
+  await connection();
+
+  const { params, where } = buildCategoryWhere(categoryId, f);
+  const offset = (f.page - 1) * PAGE_SIZE;
+
+  const [rows, counts] = await Promise.all([
+    query<ProductRow>(
+      `${TREE_CTE}
+       ${PRODUCT_SELECT}
+         ${where}
+       ORDER BY ${CATEGORY_ORDER[f.sort]}
+       LIMIT ${PAGE_SIZE} OFFSET ${offset}`,
+      params
+    ),
+    query<{ count: string | number }>(
+      `${TREE_CTE}
+       SELECT COUNT(*) AS count
+       FROM products p
+       WHERE p.is_active = TRUE
+         ${where}`,
+      params
+    ),
+  ]);
+
+  return { products: rows.map(mapProduct), total: Number(counts[0]?.count ?? 0) };
+}
+
+export type CategoryFacets = {
+  brands: { brand_id: number; name: string; count: number }[];
+  total: number;
+  minPrice: number | null;
+  maxPrice: number | null;
+};
+
+export const getCategoryFacets = cache(async (categoryId: number): Promise<CategoryFacets> => {
+  await connection();
+
+  const [brandRows, boundRows] = await Promise.all([
+    query<{ brand_id: number; name: string; count: string | number }>(
+      `${TREE_CTE}
+       SELECT b.brand_id, b.name, COUNT(*) AS count
+       FROM products p
+       JOIN brands b ON b.brand_id = p.brand_id
+       WHERE p.is_active = TRUE
+         AND p.category_id IN (SELECT category_id FROM tree)
+       GROUP BY b.brand_id, b.name
+       ORDER BY b.name`,
+      [categoryId]
+    ),
+    query<{ min_price: string | number | null; max_price: string | number | null }>(
+      `${TREE_CTE}
+       SELECT MIN(${EFFECTIVE_PRICE}) AS min_price, MAX(${EFFECTIVE_PRICE}) AS max_price
+       FROM products p
+       WHERE p.is_active = TRUE
+         AND p.category_id IN (SELECT category_id FROM tree)`,
+      [categoryId]
+    ),
+  ]);
+
+  const brands = brandRows.map((r) => ({
+    brand_id: Number(r.brand_id),
+    name: r.name,
+    count: Number(r.count),
+  }));
+
+  return {
+    brands,
+    total: brands.reduce((sum, b) => sum + b.count, 0),
+    minPrice: toNumber(boundRows[0]?.min_price),
+    maxPrice: toNumber(boundRows[0]?.max_price),
+  };
+});

@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import ProductCard from './ProductCard';
-import SeeMoreCard from './SeeMoreCard';
+import SeeMoreCard from '../common/cards/SeeMoreCard';
 import type { Product } from '@/types';
 
 interface Props {

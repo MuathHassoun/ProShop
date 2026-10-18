@@ -90,6 +90,7 @@ export interface Review {
   comment?: string | null;
   created_at: string;
   user_name?: string;
+  title?: string | null;
 }
 
 export interface OrderItem {
@@ -111,4 +112,11 @@ export interface Order {
   payment_method?: string | null;
   created_at: string;
   items?: OrderItem[];
+}
+
+export interface ProductVariant {
+  variant_id: number;
+  product_id: number;
+  variant_name?: string | null;
+  options: Record<string, string>;
 }
