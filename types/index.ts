@@ -7,6 +7,9 @@ export interface User {
   phone?: string | null;
   role: 'admin' | 'customer';
   created_at: string;
+  // Optional profile fields (not in the users table yet)
+  birthday?: string | null;
+  avatar_url?: string | null;
 }
 
 export interface ShippingAddress {

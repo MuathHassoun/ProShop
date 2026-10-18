@@ -12,8 +12,8 @@ export default function SeeMoreCard({ href, label = 'See more', tinted = false }
   return (
     <Link
       href={href}
-      className={`group flex h-full min-h-48 w-full flex-col items-center justify-center gap-3 rounded-2xl text-neutral-800 transition ${
-        tinted ? 'bg-slate-100 hover:shadow-md' : 'bg-white shadow-sm hover:shadow-md'
+      className={`group flex h-full min-h-48 w-full flex-col items-center justify-center gap-3 rounded-2xl text-neutral-800 transition hover:shadow-md${
+        tinted ? 'bg-slate-100' : 'bg-white shadow-sm'
       }`}
     >
       <span className="flex size-12 items-center justify-center rounded-full bg-yellow-400 transition-transform group-hover:translate-x-1">

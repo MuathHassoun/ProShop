@@ -32,6 +32,17 @@ const userSlice = createSlice({
         localStorage.setItem('proshop_user', JSON.stringify(action.payload));
       }
     },
+    updateUserProfile: (state, action: PayloadAction<Partial<User>>) => {
+      if (state.userInfo) {
+        state.userInfo = {
+          ...state.userInfo,
+          ...action.payload,
+        };
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('proshop_user', JSON.stringify(state.userInfo));
+        }
+      }
+    },
     logout: (state) => {
       state.userInfo = null;
       if (typeof window !== 'undefined') {
@@ -41,5 +52,5 @@ const userSlice = createSlice({
   },
 });
 
-export const { setCredentials, logout } = userSlice.actions;
+export const { setCredentials, updateUserProfile, logout } = userSlice.actions;
 export default userSlice.reducer;
