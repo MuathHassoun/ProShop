@@ -41,12 +41,6 @@ function clampLimit(limit: number, fallback = 10): number {
   return Number.isFinite(limit) ? Math.max(1, Math.trunc(limit)) : fallback;
 }
 
-/**
- * Price, discount and stock now live on product_variants.
- * For listings we show the cheapest active variant ("from" price)
- * and the total stock across all active variants.
- * Alias: vr  ->  vr.price, vr.discount_price, vr.stock_quantity
- */
 const VARIANT_LATERAL = `
   LEFT JOIN LATERAL (
     SELECT
@@ -162,6 +156,20 @@ export const getDiscountedProducts = cache((limit = 5) =>
     limit
   )
 );
+
+export async function getWishlistProducts(userId: number): Promise<Product[]> {
+  await connection();
+
+  const rows = await query<ProductRow>(
+    `${PRODUCT_SELECT}
+       AND p.product_id IN (SELECT w.product_id FROM wishlist_items w WHERE w.user_id = $1)
+     ORDER BY (SELECT w.created_at FROM wishlist_items w
+               WHERE w.user_id = $1 AND w.product_id = p.product_id) DESC`,
+    [userId]
+  );
+
+  return rows.map(mapProduct);
+}
 
 export const getProductBySlug = cache(async (slug: string): Promise<Product | null> => {
   await connection();
@@ -449,8 +457,6 @@ export const getCategoryFacets = cache(async (categoryId: number): Promise<Categ
     maxPrice: toNumber(boundRows[0]?.max_price),
   };
 });
-
-/* ---------- All products (/products) ---------- */
 
 export async function getAllProducts(
   f: CatalogFilters

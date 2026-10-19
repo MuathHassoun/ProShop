@@ -1,5 +1,4 @@
 // types/index.ts
-
 export interface User {
   user_id: number;
   full_name: string;
@@ -62,10 +61,9 @@ export interface Product {
   price: number;
   discount_price?: number | null;
   stock_quantity: number;
-  variant_id?: number; // the variant shown on listings (cheapest active)
+  variant_id?: number;
   is_active: boolean;
   created_at: string;
-  // Joined or augmented fields
   category_name?: string;
   brand_name?: string;
   image_url?: string;
@@ -88,8 +86,6 @@ export interface ProductVariant {
   stock_quantity: number;
 }
 
-// Cart lines are per variant. price = the effective unit price
-// (discount_price when set, otherwise price).
 export interface CartItem {
   variant_id: number;
   product_id: number;
@@ -113,7 +109,6 @@ export interface Review {
   title?: string | null;
 }
 
-// Snapshot columns keep history valid if a product or variant is deleted
 export interface OrderItem {
   order_item_id: number;
   order_id: number;

@@ -16,3 +16,7 @@ export function formatDate(iso: string) {
   const d = new Date(iso);
   return Number.isNaN(d.getTime()) ? '' : dateFormatter.format(d);
 }
+
+export function formatBadgeCount(count: number) {
+  return count > 99 ? '99+' : String(count);
+}

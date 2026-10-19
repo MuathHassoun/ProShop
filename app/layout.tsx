@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { Suspense } from 'react';
 import './globals.css';
 import StoreProvider from '@/store/StoreProvider';
+import WishlistSync from '@/store/WishlistSync';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 
@@ -21,6 +22,7 @@ export default function RootLayout({
       <body className="min-h-screen max-w-full mx-auto flex flex-col bg-white text-black">
         <Suspense fallback={null}>
           <StoreProvider>
+            <WishlistSync />
             <Header />
             <main className="flex-1">{children}</main>
             <Footer />

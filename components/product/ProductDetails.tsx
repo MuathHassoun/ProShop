@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, Bookmark, Check, Minus, Plus } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { addToCart } from '@/store/slices/cartSlice';
+import { useToggleWishlist, useWishlisted } from '@/store/useWishlist';
 import { formatPrice } from '@/lib/format';
 import ProductGallery from './ProductGallery';
 import type { Product, ProductImage, ProductSpec, ProductVariant } from '@/types';
@@ -85,7 +86,8 @@ export default function ProductDetails({ product, images, specs, variants, revie
   const inCart = useAppSelector(
     (s) => s.cart.cartItems.find((i) => i.variant_id === variantId)?.quantity ?? 0
   );
-  const [wishlisted, setWishlisted] = useState(false);
+  const wishlisted = useWishlisted(product.product_id);
+  const toggleWishlist = useToggleWishlist();
   const [added, setAdded] = useState(false);
   const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -165,7 +167,7 @@ export default function ProductDetails({ product, images, specs, variants, revie
               </h1>
               <button
                 type="button"
-                onClick={() => setWishlisted((w) => !w)}
+                onClick={() => toggleWishlist(product)}
                 aria-label={wishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
                 aria-pressed={wishlisted}
                 className={`flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-full border border-neutral-200 transition hover:bg-neutral-100 ${focusRing}`}

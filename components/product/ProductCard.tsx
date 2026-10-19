@@ -1,10 +1,10 @@
 // components/product/ProductCard.tsx
 'use client';
-
 import Image from 'next/image';
 import Link from 'next/link';
 import { Bookmark, Star, StarHalf } from 'lucide-react';
 import type { Product } from '@/types';
+import { useToggleWishlist, useWishlisted } from '@/store/useWishlist';
 
 interface Props {
   product: Product;
@@ -42,6 +42,8 @@ function Rating({ value }: { value: number }) {
 }
 
 export default function ProductCard({ product, onAddToCart, onToggleWishlist }: Props) {
+  const wishlisted = useWishlisted(product.product_id);
+  const toggleWishlist = useToggleWishlist();
   const hasDiscount =
     product.discount_price !== null &&
     product.discount_price !== undefined &&
@@ -94,11 +96,12 @@ export default function ProductCard({ product, onAddToCart, onToggleWishlist }: 
         <div className="flex w-full items-center gap-1.5 sm:gap-2">
           <button
             type="button"
-            onClick={() => onToggleWishlist?.(product)}
-            aria-label="Add to wishlist"
+            onClick={() => (onToggleWishlist ?? toggleWishlist)(product)}
+            aria-label={wishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
+            aria-pressed={wishlisted}
             className="flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-lg bg-neutral-100 transition hover:bg-yellow-400 sm:size-11"
           >
-            <Bookmark className="size-5" />
+            <Bookmark className={`size-5 ${wishlisted ? 'fill-neutral-900' : ''}`} />
           </button>
           <button
             type="button"
