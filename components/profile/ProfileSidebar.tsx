@@ -31,6 +31,7 @@ interface Props {
   name: string;
   avatarSrc: string | null;
   onLogout: () => void;
+  active?: 'profile' | 'settings';
 }
 
 const navigationLinkClass =
@@ -40,13 +41,14 @@ export default function ProfileSidebar({
   name,
   avatarSrc,
   onLogout,
+  active = 'profile',
 }: Props) {
   return (
     <aside className="min-w-0 rounded-2xl border border-[#e5e5e5] bg-white p-4 shadow-sm lg:sticky lg:top-6">
       <Link
         href="/profile"
         aria-label="My profile"
-        aria-current="page"
+        aria-current={active === 'profile' ? 'page' : undefined}
         className="flex min-w-0 items-center gap-3 rounded-xl p-2 transition-colors hover:bg-[#fafafa] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#252525]"
       >
         <Avatar
@@ -78,7 +80,12 @@ export default function ProfileSidebar({
             <li key={href}>
               <Link
                 href={href}
-                className={navigationLinkClass}
+                aria-current={active === 'settings' && href === '/settings' ? 'page' : undefined}
+                className={`${navigationLinkClass} ${
+                  active === 'settings' && href === '/settings'
+                    ? 'bg-[#f5f5f5] text-[#252525]'
+                    : ''
+                }`}
               >
                 <Icon
                   size={18}

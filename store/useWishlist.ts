@@ -19,7 +19,9 @@ export function useMounted() {
 }
 
 export function useWishlisted(productId: number) {
-  return useAppSelector((s) => s.wishlist.items.some((p) => p.product_id === productId));
+  const mounted = useMounted();
+  const saved = useAppSelector((s) => s.wishlist.items.some((p) => p.product_id === productId));
+  return mounted && saved;
 }
 
 async function request(method: 'POST' | 'DELETE', userId: number, productId?: number) {

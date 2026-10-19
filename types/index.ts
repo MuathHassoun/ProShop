@@ -135,3 +135,25 @@ export interface Order {
   created_at: string;
   items?: OrderItem[];
 }
+
+export interface SavedShippingAddress {
+  recipient_name: string;
+  phone: string | null;
+  country: string;
+  city: string;
+  zip_code: string | null;
+  street_address: string;
+  address_details: string | null;
+}
+
+export interface SavedPaymentMethod {
+  card_brand: string;
+  last_four: string;
+  exp_month: number;
+  exp_year: number;
+}
+
+export interface SavedSettings {
+  address: SavedShippingAddress | null;
+  payment: SavedPaymentMethod | null;
+}
