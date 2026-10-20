@@ -3,7 +3,13 @@
 import Link from 'next/link';
 import { LogOut, Package, Heart, Bell, Settings, ChevronRight } from 'lucide-react';
 import Avatar from './Avatar';
-import { Props } from '@/types';
+
+interface Props {
+  name: string;
+  avatarSrc: string | null;
+  onLogout: () => void;
+  active?: 'profile' | 'settings';
+}
 
 const links = [
   {
