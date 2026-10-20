@@ -93,6 +93,7 @@ export interface CartItem {
   variant_name?: string | null;
   slug: string;
   price: number;
+  original_price?: number | null;
   image_url: string;
   stock_quantity: number;
   quantity: number;
@@ -156,4 +157,43 @@ export interface SavedPaymentMethod {
 export interface SavedSettings {
   address: SavedShippingAddress | null;
   payment: SavedPaymentMethod | null;
+}
+
+export interface CheckoutAddress {
+  recipient_name: string;
+  phone: string | null;
+  country: string;
+  city: string;
+  zip_code: string;
+  street_address: string;
+}
+
+export interface CheckoutPayment {
+  name_on_card: string;
+  card_brand: string;
+  last_four: string;
+  exp_month: number;
+  exp_year: number;
+}
+
+export interface CheckoutDraft {
+  address: CheckoutAddress | null;
+  payment: CheckoutPayment | null;
+}
+
+export interface AddressForm {
+  recipient_name: string;
+  phone: string;
+  country: string;
+  city: string;
+  zip_code: string;
+  street_address: string;
+  address_details: string;
+}
+
+export interface PaymentForm {
+  card_brand: string;
+  last_four: string;
+  exp_month: string;
+  exp_year: string;
 }

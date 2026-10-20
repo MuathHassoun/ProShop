@@ -1,10 +1,15 @@
 // components/product/ProductCard.tsx
 'use client';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Bookmark, Star, StarHalf } from 'lucide-react';
+import { Bookmark, Minus, Plus, Star, StarHalf } from 'lucide-react';
 import type { Product } from '@/types';
 import { useToggleWishlist, useWishlisted } from '@/store/useWishlist';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { removeFromCart, updateQuantity } from '@/store/slices/cartSlice';
+
+const COUNTER_MS = 3000;
 
 interface Props {
   product: Product;
@@ -49,7 +54,49 @@ export default function ProductCard({ product, onAddToCart, onToggleWishlist }: 
     product.discount_price !== undefined &&
     product.discount_price < product.price;
   const price = hasDiscount ? (product.discount_price as number) : product.price;
-  const inStock = (product.stock_quantity ?? 0) > 0;
+  const stock = product.stock_quantity ?? 0;
+  const inStock = stock > 0;
+
+  const dispatch = useAppDispatch();
+  const variantId = product.variant_id;
+  const qty = useAppSelector(
+    (s) => s.cart.cartItems.find((i) => i.variant_id === variantId)?.quantity ?? 0
+  );
+
+  const [counterOpen, setCounterOpen] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const stopTimer = useCallback(() => {
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = null;
+  }, []);
+  const startTimer = useCallback(() => {
+    stopTimer();
+    timer.current = setTimeout(() => setCounterOpen(false), COUNTER_MS);
+  }, [stopTimer]);
+  useEffect(() => stopTimer, [stopTimer]);
+
+  const handleAdd = () => {
+    onAddToCart?.(product);
+    setCounterOpen(true);
+    startTimer();
+  };
+
+  const handleStep = (next: number) => {
+    if (variantId === undefined) return;
+    if (next < 1) {
+      dispatch(removeFromCart(variantId));
+      stopTimer();
+      setCounterOpen(false);
+      return;
+    }
+    dispatch(updateQuantity({ variant_id: variantId, quantity: next }));
+    startTimer();
+  };
+
+  const showCounter = counterOpen && qty > 0;
+  const stepBtn =
+    'flex h-full w-11 shrink-0 cursor-pointer items-center justify-center bg-yellow-400 transition hover:bg-yellow-500 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-yellow-400';
 
   return (
     <article className="group flex h-full w-full flex-col overflow-hidden rounded-2xl bg-white text-neutral-800 shadow-sm transition hover:shadow-md">
@@ -103,14 +150,48 @@ export default function ProductCard({ product, onAddToCart, onToggleWishlist }: 
           >
             <Bookmark className={`size-5 ${wishlisted ? 'fill-neutral-900' : ''}`} />
           </button>
-          <button
-            type="button"
-            onClick={() => onAddToCart?.(product)}
-            disabled={!inStock}
-            className="h-10 min-w-0 flex-1 cursor-pointer truncate rounded-lg bg-neutral-100 px-3 text-sm transition hover:bg-yellow-400 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-neutral-100 sm:h-11 sm:text-base"
-          >
-            {inStock ? 'Add To Cart' : 'Out of stock'}
-          </button>
+          {showCounter ? (
+            <div
+              role="group"
+              aria-label="Quantity in cart"
+              onMouseEnter={stopTimer}
+              onMouseLeave={startTimer}
+              className="flex h-10 min-w-0 flex-1 items-center overflow-hidden rounded-lg bg-neutral-100 sm:h-11"
+            >
+              <button
+                type="button"
+                onClick={() => handleStep(qty - 1)}
+                aria-label={qty <= 1 ? 'Remove from cart' : 'Decrease quantity'}
+                className={stepBtn}
+              >
+                <Minus className="size-4" />
+              </button>
+              <output
+                aria-live="polite"
+                className="flex-1 text-center text-sm font-semibold tabular-nums sm:text-base"
+              >
+                {qty}
+              </output>
+              <button
+                type="button"
+                onClick={() => handleStep(qty + 1)}
+                disabled={qty >= stock}
+                aria-label="Increase quantity"
+                className={stepBtn}
+              >
+                <Plus className="size-4" />
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={handleAdd}
+              disabled={!inStock}
+              className="h-10 min-w-0 flex-1 cursor-pointer truncate rounded-lg bg-neutral-100 px-3 text-sm transition hover:bg-yellow-400 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-neutral-100 sm:h-11 sm:text-base"
+            >
+              {inStock ? 'Add To Cart' : 'Out of stock'}
+            </button>
+          )}
         </div>
       </div>
     </article>

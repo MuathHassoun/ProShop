@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { LogOut, Package, Heart, Bell, Settings, ChevronRight } from 'lucide-react';
 import Avatar from './Avatar';
+import { Props } from '@/types';
 
 const links = [
   {
@@ -26,13 +27,6 @@ const links = [
     icon: Settings,
   },
 ];
-
-interface Props {
-  name: string;
-  avatarSrc: string | null;
-  onLogout: () => void;
-  active?: 'profile' | 'settings';
-}
 
 const navigationLinkClass =
   'group flex min-h-11 items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-[#555555] transition-colors hover:bg-[#f5f5f5] hover:text-[#252525] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#252525]';

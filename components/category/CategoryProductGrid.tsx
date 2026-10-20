@@ -27,6 +27,7 @@ export default function CategoryProductGrid({ products }: { products: Product[] 
         name: product.name,
         slug: product.slug,
         price: hasDiscount ? (product.discount_price as number) : product.price,
+        original_price: hasDiscount ? product.price : null,
         image_url: product.image_url ?? '',
         stock_quantity: stock,
         quantity: Math.min(inCart + 1, stock),

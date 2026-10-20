@@ -1,5 +1,6 @@
 // components/settings/SettingsView.tsx
 'use client';
+import Link from 'next/link';
 import { useEffect, useId, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
@@ -22,39 +23,19 @@ import { fetchSavedSettings } from '@/lib/settings-client';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { logout } from '@/store/slices/userSlice';
 import { useMounted } from '@/store/useWishlist';
-import type { SavedPaymentMethod, SavedShippingAddress } from '@/types';
+import type { SavedPaymentMethod, SavedShippingAddress, AddressForm, PaymentForm } from '@/types';
 
 const panelClass = 'rounded-2xl border border-[#e5e5e5] bg-white p-5 shadow-sm sm:p-7';
-
 const primaryButton =
   'inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-lg bg-[#fdde0b] px-5 py-2 text-sm font-semibold text-[#252525] transition-colors hover:bg-[#f5d200] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#252525] disabled:cursor-not-allowed disabled:opacity-60';
-
 const secondaryButton =
   'inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-lg border border-[#e5e5e5] px-4 py-2 text-sm font-semibold text-[#555555] transition-colors hover:bg-[#f5f5f5] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#252525] disabled:cursor-not-allowed disabled:opacity-60';
 
 const CARD_BRANDS = ['Visa', 'Mastercard', 'American Express', 'Other'] as const;
 const MONTHS = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0'));
 
-interface AddressForm {
-  recipient_name: string;
-  phone: string;
-  country: string;
-  city: string;
-  zip_code: string;
-  street_address: string;
-  address_details: string;
-}
-
-interface PaymentForm {
-  card_brand: string;
-  last_four: string;
-  exp_month: string;
-  exp_year: string;
-}
-
 type Status = { saving: boolean; error: string | null; saved: boolean };
 const idle: Status = { saving: false, error: null, saved: false };
-
 const emptyPayment: PaymentForm = { card_brand: '', last_four: '', exp_month: '', exp_year: '' };
 
 function toAddressForm(
@@ -233,13 +214,10 @@ export default function SettingsView() {
 
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-
   const [savedAddress, setSavedAddress] = useState<SavedShippingAddress | null>(null);
   const [savedPayment, setSavedPayment] = useState<SavedPaymentMethod | null>(null);
-
   const [address, setAddress] = useState<AddressForm>(() => toAddressForm(null, '', ''));
   const [payment, setPayment] = useState<PaymentForm>(emptyPayment);
-
   const [addressStatus, setAddressStatus] = useState<Status>(idle);
   const [paymentStatus, setPaymentStatus] = useState<Status>(idle);
 
@@ -396,7 +374,13 @@ export default function SettingsView() {
     <div className="min-h-[60vh] bg-[#fafafa]">
       <div className="mx-auto max-w-[1200px] px-4 py-6 sm:px-6 sm:py-10 lg:px-8">
         <header className="mb-7">
-          <p className="text-sm font-medium text-[#777777]">Account / Settings</p>
+          <p className="text-sm font-medium text-[#777777]">
+            <Link href="/profile" className="transition-colors hover:text-[#252525]">
+              Account
+            </Link>
+            {' / '}
+            <span aria-current="page">Settings</span>
+          </p>
           <h1 className="mt-2 text-2xl font-bold tracking-tight text-[#252525] sm:text-3xl">
             Settings
           </h1>

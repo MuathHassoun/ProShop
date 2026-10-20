@@ -1,6 +1,7 @@
 // components/profile/Wishlist.tsx
 'use client';
 import Link from 'next/link';
+import { ReactNode } from 'react';
 import { Bookmark, Trash2 } from 'lucide-react';
 import ProductCard from '@/components/product/ProductCard';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
@@ -9,7 +10,7 @@ import { useClearWishlist, useMounted } from '@/store/useWishlist';
 import { formatBadgeCount } from '@/lib/format';
 import type { Product } from '@/types';
 
-export function Wishlist() {
+export function Wishlist({ children }: { children?: ReactNode }) {
   const dispatch = useAppDispatch();
   const mounted = useMounted();
   const user = useAppSelector((s) => s.user.userInfo);
@@ -35,6 +36,7 @@ export function Wishlist() {
         name: product.name,
         slug: product.slug,
         price: hasDiscount ? (product.discount_price as number) : product.price,
+        original_price: hasDiscount ? product.price : null,
         image_url: product.image_url ?? '',
         stock_quantity: stock,
         quantity: Math.min(inCart + 1, stock),
@@ -46,7 +48,7 @@ export function Wishlist() {
   const list = loading ? [] : items;
 
   return (
-    <section aria-labelledby="wishlist-heading" className="mx-auto max-w-[1200px] px-4 py-6 sm:px-6 sm:py-10 lg:px-8">
+    <section aria-labelledby="wishlist-heading" className="mx-auto max-w-[1500px] px-4 py-6 sm:px-6 sm:py-10 lg:px-8">
       <header className="mb-6 flex flex-col gap-4 border-b border-[#eeeeee] pb-6 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
           <p className="text-sm font-medium text-[#777777]">
@@ -130,19 +132,22 @@ export function Wishlist() {
           Could not load your wishlist. Please refresh the page.
         </p>
       ) : list.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-[#e5e5e5] bg-white px-6 py-16 text-center">
-          <Bookmark size={32} aria-hidden="true" className="text-[#bbbbbb]" />
-          <p className="font-semibold text-[#252525]">Your wishlist is empty</p>
-          <p className="max-w-sm text-sm text-[#777777]">
-            Tap the bookmark on any product to save it here for later.
-          </p>
-          <Link
-            href="/products"
-            className="mt-2 inline-flex min-h-10 items-center rounded-lg bg-[#fdde0b] px-4 text-sm font-semibold text-[#252525] transition-colors hover:bg-[#f5d200]"
-          >
-            Browse products
-          </Link>
-        </div>
+        <>
+          <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-[#e5e5e5] bg-white px-6 py-16 text-center">
+            <Bookmark size={32} aria-hidden="true" className="text-[#bbbbbb]" />
+            <p className="font-semibold text-[#252525]">Your wishlist is empty</p>
+            <p className="max-w-sm text-sm text-[#777777]">
+              Tap the bookmark on any product to save it here for later.
+            </p>
+            <Link
+              href="/products"
+              className="mt-2 inline-flex min-h-10 items-center rounded-lg bg-[#fdde0b] px-4 text-sm font-semibold text-[#252525] transition-colors hover:bg-[#f5d200]"
+            >
+              Browse products
+            </Link>
+          </div>
+          {children}
+        </>
       ) : (
         <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {list.map((product) => (

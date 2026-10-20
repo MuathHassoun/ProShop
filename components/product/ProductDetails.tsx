@@ -116,6 +116,7 @@ export default function ProductDetails({ product, images, specs, variants, revie
         name: product.name,
         slug: product.slug,
         price,
+        original_price: hasDiscount ? basePrice : null,
         image_url: product.image_url ?? gallery[0] ?? '',
         stock_quantity: stock,
         quantity: Math.min(inCart + quantity, stock),

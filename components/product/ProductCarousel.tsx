@@ -4,6 +4,8 @@
 import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import ProductCard from './ProductCard';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { addToCart } from '@/store/slices/cartSlice';
 import SeeMoreCard from '../common/cards/SeeMoreCard';
 import type { Product } from '@/types';
 
@@ -56,6 +58,33 @@ function Slider({
   perPage,
 }: Props & { perPage: number }) {
   const centered = align === 'center';
+  const dispatch = useAppDispatch();
+  const cartItems = useAppSelector((s) => s.cart.cartItems);
+
+  const handleAddToCart = (product: Product) => {
+    const stock = product.stock_quantity ?? 0;
+    if (stock <= 0 || product.variant_id === undefined) return;
+    const variantId = product.variant_id;
+    const inCart = cartItems.find((i) => i.variant_id === variantId)?.quantity ?? 0;
+    const hasDiscount =
+      product.discount_price !== null &&
+      product.discount_price !== undefined &&
+      product.discount_price < product.price;
+
+    dispatch(
+      addToCart({
+        variant_id: variantId,
+        product_id: product.product_id,
+        name: product.name,
+        slug: product.slug,
+        price: hasDiscount ? (product.discount_price as number) : product.price,
+        original_price: hasDiscount ? product.price : null,
+        image_url: product.image_url ?? '',
+        stock_quantity: stock,
+        quantity: Math.min(inCart + 1, stock),
+      })
+    );
+  };
 
   const items: (Product | 'more')[] = seeMoreHref ? [...products, 'more'] : products;
 
@@ -152,7 +181,7 @@ function Slider({
                   item === 'more' ? (
                     <SeeMoreCard key="more" href={seeMoreHref!} />
                   ) : (
-                    <ProductCard key={item.slug} product={item} />
+                    <ProductCard key={item.slug} product={item} onAddToCart={handleAddToCart} />
                   ),
                 )}
               </div>
