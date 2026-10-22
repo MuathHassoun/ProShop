@@ -47,6 +47,7 @@ const userSlice = createSlice({
       state.userInfo = null;
       if (typeof window !== 'undefined') {
         localStorage.removeItem('proshop_user');
+        void fetch('/api/auth/logout', { method: 'POST', keepalive: true }).catch(() => {});
       }
     },
   },

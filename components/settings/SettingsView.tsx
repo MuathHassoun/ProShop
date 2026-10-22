@@ -396,6 +396,7 @@ export default function SettingsView() {
             avatarSrc={avatar.src}
             onLogout={handleLogout}
             active="settings"
+            isAdmin={user.role === 'admin'}
           />
 
           <div className="min-w-0 space-y-6">

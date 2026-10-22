@@ -1,33 +1,11 @@
 // components/profile/useAvatar.ts
 'use client';
-import { useCallback, useState, useSyncExternalStore } from 'react';
+import { useCallback, useState } from 'react';
+import { useAppDispatch } from '@/store/hooks';
+import { updateUserProfile } from '@/store/slices/userSlice';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const AVATAR_SIZE = 256;
-const AVATAR_EVENT = 'proshop-avatar-change';
-const storageKey = (userId: number) => `proshop_avatar_${userId}`;
-
-function readStored(userId: number | undefined): string | null {
-  if (userId === undefined) {
-    return null;
-  }
-
-  try {
-    return localStorage.getItem(storageKey(userId));
-  } catch {
-    return null;
-  }
-}
-
-function subscribe(onChange: () => void) {
-  window.addEventListener(AVATAR_EVENT, onChange);
-  window.addEventListener('storage', onChange);
-
-  return () => {
-    window.removeEventListener(AVATAR_EVENT, onChange);
-    window.removeEventListener('storage', onChange);
-  };
-}
 
 async function toAvatarDataUrl(file: File): Promise<string> {
   const bitmap = await createImageBitmap(file);
@@ -67,13 +45,9 @@ export function useAvatar(
   userId: number | undefined,
   remoteUrl?: string | null
 ) {
+  const dispatch = useAppDispatch();
   const [error, setError] = useState('');
-
-  const stored = useSyncExternalStore(
-    subscribe,
-    () => readStored(userId),
-    () => null
-  );
+  const [isUploading, setIsUploading] = useState(false);
 
   const upload = useCallback(
     async (file: File | undefined) => {
@@ -93,27 +67,45 @@ export function useAvatar(
         return;
       }
 
+      setIsUploading(true);
+
       try {
-        const dataUrl = await toAvatarDataUrl(file);
+        let dataUrl: string;
 
         try {
-          localStorage.setItem(storageKey(userId), dataUrl);
+          dataUrl = await toAvatarDataUrl(file);
         } catch {
-          setError('Could not save the photo in this browser.');
+          setError('Could not process that image. Try another one.');
           return;
         }
 
-        window.dispatchEvent(new Event(AVATAR_EVENT));
+        const response = await fetch('/api/profile/avatar', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId, avatar: dataUrl }),
+        });
+
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+          setError(data.error || 'Could not save your photo. Please try again.');
+          return;
+        }
+
+        dispatch(updateUserProfile({ avatar_url: data.avatar_url ?? dataUrl }));
       } catch {
-        setError('Could not process that image. Try another one.');
+        setError('Could not save your photo. Check your connection and try again.');
+      } finally {
+        setIsUploading(false);
       }
     },
-    [userId]
+    [userId, dispatch]
   );
 
   return {
-    src: stored ?? remoteUrl ?? null,
+    src: remoteUrl ?? null,
     upload,
     error,
+    isUploading,
   };
 }

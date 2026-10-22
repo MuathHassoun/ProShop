@@ -1,13 +1,11 @@
 // components/profile/ProfileView.tsx
 'use client';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { updateUserProfile } from '@/store/slices/userSlice';
 import { useRouter } from 'next/navigation';
 import { useAvatar } from './useAvatar';
-
 import { Camera, LockKeyhole, UserRound, SquarePen, Check, X } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { logout } from '@/store/slices/userSlice';
+import { updateUserProfile, logout } from '@/store/slices/userSlice';
 import ProfileSidebar from './ProfileSidebar';
 import Avatar from './Avatar';
 import Link from 'next/link';
@@ -15,7 +13,7 @@ import Link from 'next/link';
 const subscribeNever = () => () => {};
 
 const buttonClass =
-  'inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-[#fdde0b] px-4 py-2 text-sm font-semibold text-[#252525] transition-colors hover:bg-[#f5d200] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#252525] disabled:cursor-not-allowed disabled:opacity-60';
+  'inline-flex min-h-10 items-center cursor-pointer justify-center gap-2 rounded-lg bg-[#fdde0b] px-4 py-2 text-sm font-semibold text-[#252525] transition-colors hover:bg-[#f5d200] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#252525] disabled:cursor-not-allowed disabled:opacity-60';
 
 const panelClass =
   'relative rounded-2xl border border-[#e5e5e5] bg-white p-5 shadow-sm sm:p-7';
@@ -261,6 +259,7 @@ export default function ProfileView() {
             name={user.full_name}
             avatarSrc={avatar.src}
             onLogout={handleLogout}
+            isAdmin={user.role === 'admin'}
           />
 
           <div className="min-w-0 space-y-6">
@@ -415,10 +414,11 @@ export default function ProfileView() {
                   <button
                     type="button"
                     className={`${buttonClass} mt-4`}
+                    disabled={avatar.isUploading}
                     onClick={() => fileInput.current?.click()}
                   >
                     <Camera size={16} aria-hidden="true" />
-                    Change photo
+                    {avatar.isUploading ? 'Uploading...' : 'Change photo'}
                   </button>
 
                   {avatar.error && (
@@ -431,8 +431,8 @@ export default function ProfileView() {
                   )}
 
                   <p className="mt-3 text-xs leading-5 text-[#888888]">
-                    Your photo is saved in this browser and is not
-                    synchronized to other devices.
+                    Your photo is saved to your account and will
+                    appear on every device you sign in from.
                   </p>
                 </div>
               </div>

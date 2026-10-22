@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server';
 import { query, sql } from '@/lib/db';
 import { hashPassword } from '@/lib/password';
+import { SESSION_COOKIE, createSessionToken, sessionCookieOptions } from '@/lib/session';
 import { isEmail, MIN_PASSWORD_LENGTH } from '@/components/auth/validation';
 import type { User } from '@/types';
 
@@ -39,7 +40,9 @@ export async function POST(request: Request) {
     );
 
     if (rows.length === 0) return fail('An account with this email already exists', 409);
-    return NextResponse.json({ user: rows[0] }, { status: 201 });
+    const res = NextResponse.json({ user: rows[0] }, { status: 201 });
+    res.cookies.set(SESSION_COOKIE, createSessionToken(Number(rows[0].user_id)), sessionCookieOptions);
+    return res;
   } catch (error) {
     console.error('Register error:', error);
     return fail('Could not create account', 500);

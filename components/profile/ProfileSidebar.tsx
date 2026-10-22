@@ -1,7 +1,7 @@
 // components/profile/ProfileSidebar.tsx
 'use client';
 import Link from 'next/link';
-import { LogOut, Package, Heart, Bell, Settings, ChevronRight } from 'lucide-react';
+import { LogOut, Package, Heart, Bell, Settings, ChevronRight, ShieldCheck } from 'lucide-react';
 import Avatar from './Avatar';
 
 interface Props {
@@ -9,6 +9,7 @@ interface Props {
   avatarSrc: string | null;
   onLogout: () => void;
   active?: 'profile' | 'settings';
+  isAdmin?: boolean;
 }
 
 const links = [
@@ -42,7 +43,12 @@ export default function ProfileSidebar({
   avatarSrc,
   onLogout,
   active = 'profile',
+  isAdmin = false,
 }: Props) {
+  const navLinks = isAdmin
+    ? [...links, { href: '/admin', label: 'Admin panel', icon: ShieldCheck }]
+    : links;
+
   return (
     <aside className="min-w-0 rounded-2xl border border-[#e5e5e5] bg-white p-4 shadow-sm lg:sticky lg:top-6">
       <Link
@@ -76,7 +82,7 @@ export default function ProfileSidebar({
         </p>
 
         <ul className="space-y-1">
-          {links.map(({ href, label, icon: Icon }) => (
+          {navLinks.map(({ href, label, icon: Icon }) => (
             <li key={href}>
               <Link
                 href={href}
