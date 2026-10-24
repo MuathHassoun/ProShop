@@ -2,6 +2,8 @@
 import { NextResponse } from 'next/server';
 import { query, sql } from '@/lib/db';
 import { getAdmin } from '@/lib/admin-auth';
+import { notify } from '@/lib/notifications';
+import { formatPrice } from '@/lib/format';
 
 const fail = (error: string, status: number) => NextResponse.json({ error }, { status });
 const money = (n: number) => Math.round(n * 100) / 100;
@@ -34,7 +36,6 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     )[0];
     if (!current) return fail('Variant not found', 404);
 
-    // Merge the incoming fields over the current values.
     let price = Number(current.price);
     if ('price' in body) {
       price = Number(body.price);
@@ -90,6 +91,41 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         `UPDATE products SET is_active = $1, updated_at = CURRENT_TIMESTAMP WHERE product_id = $2`,
         [body.product_active, current.product_id]
       );
+    }
+
+    const oldEffective = current.discount_price !== null ? Number(current.discount_price) : Number(current.price);
+    const newEffective = discount ?? price;
+    const priceDropped = newEffective < oldEffective;
+    const backInStock = current.stock_quantity === 0 && stock > 0;
+
+    if (isActive && (priceDropped || backInStock)) {
+      const product = (
+        await query<{ name: string; slug: string }>(
+          `SELECT name, slug FROM products WHERE product_id = $1 AND is_active = TRUE`,
+          [current.product_id]
+        )
+      )[0];
+
+      if (product) {
+        const fans = await query<{ user_id: number }>(
+          `SELECT user_id::int AS user_id FROM wishlist_items WHERE product_id = $1`,
+          [current.product_id]
+        );
+        const ids = fans.map((f) => f.user_id);
+        const link = `/product/${product.slug}`;
+
+        if (priceDropped) {
+          await notify(ids, {
+            type: 'price_drop',
+            title: `Price drop: ${product.name}`,
+            body: `Now ${formatPrice(newEffective)}`,
+            link,
+          });
+        }
+        if (backInStock) {
+          await notify(ids, { type: 'back_in_stock', title: `Back in stock: ${product.name}`, link });
+        }
+      }
     }
 
     return NextResponse.json({ success: true });

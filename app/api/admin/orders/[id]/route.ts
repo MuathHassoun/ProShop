@@ -3,8 +3,21 @@ import { NextResponse } from 'next/server';
 import { query, sql } from '@/lib/db';
 import { getAdmin } from '@/lib/admin-auth';
 import { ORDER_STATUSES, PAYMENT_STATUSES } from '@/lib/admin-data';
+import { notify } from '@/lib/notifications';
 
 const fail = (error: string, status: number) => NextResponse.json({ error }, { status });
+
+const STATUS_MESSAGES: Record<string, string> = {
+  processing: 'is being prepared',
+  shipped: 'has been shipped',
+  delivered: 'was delivered',
+  cancelled: 'was cancelled',
+};
+const PAYMENT_MESSAGES: Record<string, string> = {
+  paid: 'Payment received',
+  failed: 'Payment failed',
+  refunded: 'Payment refunded',
+};
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   if (!sql) return fail('Database is not configured', 500);
@@ -28,6 +41,14 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   }
 
   try {
+    const before = (
+      await query<{ user_id: number; status: string; payment_status: string }>(
+        `SELECT user_id::int AS user_id, status, payment_status FROM orders WHERE order_id = $1`,
+        [orderId]
+      )
+    )[0];
+    if (!before) return fail('Order not found', 404);
+
     const rows = await query(
       `UPDATE orders
        SET status = COALESCE($1::text, status),
@@ -38,6 +59,22 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       [status, paymentStatus, orderId]
     );
     if (rows.length === 0) return fail('Order not found', 404);
+
+    if (status !== null && status !== before.status && STATUS_MESSAGES[status]) {
+      await notify(before.user_id, {
+        type: 'order_status',
+        title: `Order #${orderId} ${STATUS_MESSAGES[status]}`,
+        link: '/orders',
+      });
+    }
+    if (paymentStatus !== null && paymentStatus !== before.payment_status && PAYMENT_MESSAGES[paymentStatus]) {
+      await notify(before.user_id, {
+        type: 'payment',
+        title: `${PAYMENT_MESSAGES[paymentStatus]} for order #${orderId}`,
+        link: '/orders',
+      });
+    }
+
     return NextResponse.json({ success: true, order: rows[0] });
   } catch (error) {
     console.error('Admin order update error:', error);

@@ -29,7 +29,6 @@ const getInitialState = (): CartState => {
       const stored = localStorage.getItem('proshop_cart');
       if (stored) {
         const parsed = JSON.parse(stored);
-        // Drop lines saved before carts were keyed by variant_id
         const items: CartItem[] = (parsed.cartItems || []).filter(
           (i: Partial<CartItem>) => typeof i.variant_id === 'number'
         );
