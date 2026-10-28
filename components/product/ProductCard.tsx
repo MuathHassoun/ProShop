@@ -122,11 +122,11 @@ export default function ProductCard({ product, onAddToCart, onToggleWishlist }: 
             </span>
           )}
         </div>
-
-        <h3 className="line-clamp-2 min-h-[2.5rem] px-3 pt-3 text-center text-sm leading-5 transition group-hover:text-primary-500 sm:min-h-[3rem] sm:text-base sm:leading-6">
-          {product.name}
-        </h3>
       </Link>
+
+      <h3 className="line-clamp-2 min-h-[2.5rem] px-3 pt-3 text-center text-sm leading-5 transition group-hover:text-primary-500 sm:min-h-[3rem] sm:text-base sm:leading-6">
+        {product.name}
+      </h3>
 
       <div className="mt-auto flex flex-col items-center gap-2 px-3 pb-3 pt-2 sm:gap-2.5">
         <Rating value={product.rating ?? 0} />

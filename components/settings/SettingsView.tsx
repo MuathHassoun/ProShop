@@ -16,7 +16,6 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import AuthField from '@/components/auth/AuthField';
-import Avatar from '@/components/profile/Avatar';
 import ProfileSidebar from '@/components/profile/ProfileSidebar';
 import { useAvatar } from '@/components/profile/useAvatar';
 import { fetchSavedSettings } from '@/lib/settings-client';
@@ -28,8 +27,6 @@ import type { SavedPaymentMethod, SavedShippingAddress, AddressForm, PaymentForm
 const panelClass = 'rounded-2xl border border-[#e5e5e5] bg-white p-5 shadow-sm sm:p-7';
 const primaryButton =
   'inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-lg bg-[#fdde0b] px-5 py-2 text-sm font-semibold text-[#252525] transition-colors hover:bg-[#f5d200] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#252525] disabled:cursor-not-allowed disabled:opacity-60';
-const secondaryButton =
-  'inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-lg border border-[#e5e5e5] px-4 py-2 text-sm font-semibold text-[#555555] transition-colors hover:bg-[#f5f5f5] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#252525] disabled:cursor-not-allowed disabled:opacity-60';
 
 const CARD_BRANDS = ['Visa', 'Mastercard', 'American Express', 'Other'] as const;
 const MONTHS = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0'));

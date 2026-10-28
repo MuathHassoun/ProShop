@@ -32,7 +32,7 @@ export default function CategoryForm({ mode, categoryId, parents, initial }: Pro
   const set = <K extends keyof CategoryFormValues>(key: K, value: CategoryFormValues[K]) =>
     setValues((v) => ({ ...v, [key]: value }));
 
-  async function onSubmit(e: React.FormEvent) {
+  async function onSubmit(e: React.SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
     setError('');
     setSaving(true);
